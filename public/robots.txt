@@ -3,4 +3,4 @@ Allow: /
 
 
 
-Sitemap: https://yapayzekadesteklidjitalsinif.com.tr/sitemap.xml
+Sitemap: https://yapayzekadesteklidijitalsinif.com.tr/sitemap.xml
