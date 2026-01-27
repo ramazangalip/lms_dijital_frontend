@@ -3,5 +3,4 @@ Allow: /
 
 
 
-# Sitenin haritasını buraya ekleyeceğiz (aşağıda anlatıyorum)
 Sitemap: https://yapayzekadesteklidjitalsinif.com.tr/sitemap.xml
