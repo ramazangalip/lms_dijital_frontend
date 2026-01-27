@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Backend adresini merkezi olarak buradan yönetiyoruz
 const api = axios.create({
-  baseURL: 'https://lms-dijital-backend.onrender.com/api',
+  baseURL: 'https://zonal-milly-ramazansaidgalips-9a8d4b32.koyeb.app/api',
 });
 
 // Axios Interceptor: Her istek gönderilmeden hemen önce araya girer
