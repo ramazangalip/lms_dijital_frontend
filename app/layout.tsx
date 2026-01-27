@@ -11,7 +11,7 @@ const roboto = Roboto({
 // --- GOOGLE VE SEO AYARLARI ---
 export const metadata: Metadata = {
   title: {
-    default: 'BÜ-LMS | Yapay Zeka Destekli Sınıf',
+    default: 'BÜ-LMS | Yapay Zeka Destekli Dijital Sınıf',
     template: '%s | BÜ-LMS'
   },
   description: 'Bingöl Üniversitesi Bilişim Teknolojileri yapay zeka destekli öğrenme yönetim sistemi. Akıllı test analizleri ve kişiselleştirilmiş eğitim.',
