@@ -494,7 +494,7 @@ export default function StudentDashboard() {
         <nav className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar leading-tight">
           <button onClick={() => { setIsIntroView(true); setActiveMaterial(null); }} className={`w-full flex items-center gap-3 p-3.5 rounded-xl transition-all border ${isIntroView ? 'bg-primary border-primary text-white shadow-lg' : 'bg-gray-800/40 border-gray-700 text-gray-400 hover:bg-gray-800'}`}>
             <div className="bg-white/10 p-1.5 rounded-lg shrink-0"><Video size={16}/></div>
-            <div className="text-left"><p className="text-[8px] font-black uppercase tracking-widest leading-none mb-1 text-gray-400">Tanıtım</p><p className="text-xs font-bold">ORYANTASYON</p></div>
+            <div className="text-left"><p className="text-[8px] font-black uppercase tracking-widest leading-none mb-1 text-gray-400">Tanıtım</p><p className="text-xs font-bold">TANITIM VİDEOSU</p></div>
           </button>
           <div className="h-px bg-gray-700/50 mx-2 my-1" />
           {[1,2,3,4,5,6,7,8,9,10,11,12,13,14].map((num) => {
