@@ -9,7 +9,7 @@ import {
   Calendar, FileText, Printer, Download, GraduationCap
 } from 'lucide-react';
 
-// --- ARAYÜZ TANIMLAMALARI ---
+
 interface Option {
   option_text: string;
   is_correct: boolean;
@@ -55,12 +55,11 @@ interface WeeklyProgress {
   quiz_results?: QuizDetailAnalysis[]; 
 }
 
-// PDF ve Toplu Liste için genişletilmiş arayüz (Backend ile Tam Uyumlu)
 interface BulkStudentData {
   id: string | number;
   full_name: string;
   email: string;
-  total_time: number; // Saniye cinsinden genel toplam
+  total_time: number; 
   weekly_breakdown: {
     week: number;
     progress: number;
@@ -89,45 +88,33 @@ export default function TeacherDashboard() {
   const [bulkData, setBulkData] = useState<BulkStudentData[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<StudentAnalytics | null>(null);
   
-  // İçerik Formu State'leri
   const [weekNumber, setWeekNumber] = useState(1);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [releaseDate, setReleaseDate] = useState(''); 
   
-  // --- GENEL SİSTEM AYARLARI ---
   const [introTitle, setIntroTitle] = useState('Genel Tanıtım ve Oryantasyon');
   const [introVideoUrl, setIntroVideoUrl] = useState('');
   
   const [materials, setMaterials] = useState<Material[]>([{ content_type: 'video', embed_url: '', title: '' }]);
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
 
-  // --- SÜRE BİÇİMLENDİRME FONKSİYONU (HAFTALIK KARNE VE PDF İÇİN GÜÇLENDİRİLDİ) ---
   const formatDuration = (durationStr: string | number) => {
     if (!durationStr || durationStr === "Aktivite Kaydı Yok" || durationStr === "Aktivite Yok") return "Aktivite Yok";
-    
     let totalMinutes = 0;
-
     if (typeof durationStr === 'number') {
-        // Backend bulkData saniye (seconds) gönderir
         totalMinutes = Math.floor(durationStr / 60);
     } else {
-        // String içindeki tüm sayıları bul (Örn: "70 DK" -> 70, "1 sa 10 dk" -> 1, 10)
         const numbers = durationStr.match(/\d+/g)?.map(Number) || [];
-        
         if (durationStr.toLowerCase().includes('sa')) {
-            // "1 sa 10 dk" formatı ise
             const hours = numbers[0] || 0;
             const mins = numbers[1] || 0;
             totalMinutes = (hours * 60) + mins;
         } else {
-            // Sadece "70 DK" formatı ise
             totalMinutes = numbers[0] || 0;
         }
     }
-
     if (isNaN(totalMinutes) || totalMinutes === 0) return typeof durationStr === 'string' ? durationStr : "0 dk";
-
     if (totalMinutes < 60) {
       return `${totalMinutes} dk`;
     } else {
@@ -137,7 +124,6 @@ export default function TeacherDashboard() {
     }
   };
 
-  // --- SEÇİLEN HAFTANIN VERİLERİNİ ÇEKME ---
   const fetchWeekDetail = useCallback(async (week: number) => {
     setFetchingWeek(true);
     try {
@@ -221,6 +207,8 @@ export default function TeacherDashboard() {
           question_text: "", 
           options: [
             { option_text: "", is_correct: true },
+            { option_text: "", is_correct: false },
+            { option_text: "", is_correct: false },
             { option_text: "", is_correct: false }
           ]
         }]
@@ -236,6 +224,8 @@ export default function TeacherDashboard() {
             question_text: "",
             options: [
               { option_text: "", is_correct: true },
+              { option_text: "", is_correct: false },
+              { option_text: "", is_correct: false },
               { option_text: "", is_correct: false }
             ]
         });
@@ -254,7 +244,7 @@ export default function TeacherDashboard() {
   const updateOption = (mIndex: number, qIndex: number, oIndex: number, text: string) => {
     const newMaterials = [...materials];
     if (newMaterials[mIndex].quiz) {
-      newMaterials[mIndex].quiz!.questions[qIndex].options[oIndex].option_text = text;
+        newMaterials[mIndex].quiz!.questions[qIndex].options[oIndex].option_text = text;
     }
     setMaterials(newMaterials);
   };
@@ -292,7 +282,6 @@ export default function TeacherDashboard() {
     } finally { setLoading(false); }
   };
 
-  // --- PDF YAZDIRMA TETİKLEYİCİ ---
   const handlePrintAll = () => {
     window.print();
   };
@@ -300,17 +289,11 @@ export default function TeacherDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 font-roboto text-secondary text-left">
       
-      {/* 1. TOPLU PDF ŞABLONU (DÜZENLENDİ VE NaN HATASI GİDERİLDİ) */}
+      {/* 1. TOPLU PDF ŞABLONU */}
       <div id="bulk-report-pdf" className="hidden print:block bg-white p-0">
         <div className="p-10">
-            {/* Okul Logosu ve Header */}
             <div className="flex flex-col items-center mb-10 border-b-4 border-black pb-8 text-center">
-              <img 
-                src="/okul-logo.png" 
-                alt="Okul Logosu" 
-                className="h-28 object-contain mb-6"
-                onError={(e) => (e.currentTarget.style.display = 'none')}
-              />
+              <img src="/okul-logo.png" alt="Okul Logosu" className="h-28 object-contain mb-6" onError={(e) => (e.currentTarget.style.display = 'none')} />
               <h1 className="text-3xl font-black uppercase tracking-tighter">SİSTEM GENELİ AKADEMİK PERFORMANS ÇİZELGESİ</h1>
               <p className="text-lg font-bold text-gray-700 mt-2 uppercase tracking-widest">Ders: Dijital Okuryazarlık</p>
               <div className="flex gap-10 mt-4 text-[10px] font-black uppercase text-gray-500">
@@ -319,7 +302,6 @@ export default function TeacherDashboard() {
               </div>
             </div>
 
-            {/* Toplu Liste Tablosu */}
             <table className="w-full border-collapse border-2 border-black">
               <thead>
                 <tr className="bg-black text-white text-center">
@@ -337,39 +319,25 @@ export default function TeacherDashboard() {
                     {student.weekly_breakdown.map((week, wIdx) => (
                       <td key={wIdx} className="border-2 border-black p-1 text-[8px] font-bold leading-tight">
                         <div className="flex flex-col items-center justify-center gap-0.5 leading-tight">
-                          {/* Yüzdelik Tamamlanma Oranı (NaN Fix) */}
-                          <span className="text-[7px] text-blue-700 font-black">
-                            %{typeof week.progress === 'number' ? Math.round(week.progress) : 0}
-                          </span>
-                          
-                          {/* Doğru / Yanlış Sayısı */}
+                          <span className="text-[7px] text-blue-700 font-black">%{typeof week.progress === 'number' ? Math.round(week.progress) : 0}</span>
                           {week.has_quiz ? (
-                            <>
-                              <div className="flex flex-col items-center">
-                                <span className="text-green-700 text-[8px] font-black">{week.correct}D</span>
-                                <span className="text-red-700 text-[8px] font-black">{week.wrong}Y</span>
-                              </div>
-                            </>
+                            <div className="flex flex-col items-center">
+                              <span className="text-green-700 text-[8px] font-black">{week.correct}D</span>
+                              <span className="text-red-700 text-[8px] font-black">{week.wrong}Y</span>
+                            </div>
                           ) : (
                             <span className="text-gray-300 text-[7px]">-/-</span>
                           )}
-
-                          {/* Haftalık Süre */}
-                          <span className="text-[6px] text-amber-600 font-black mt-0.5">
-                            {formatDuration(week.duration_seconds).replace(' Aktivite Yok', 'A.Y.')}
-                          </span>
+                          <span className="text-[6px] text-amber-600 font-black mt-0.5">{formatDuration(week.duration_seconds).replace(' Aktivite Yok', 'A.Y.')}</span>
                         </div>
                       </td>
                     ))}
-                    <td className="border-2 border-black p-3 text-[11px] font-black leading-none bg-gray-50 italic">
-                        {formatDuration(student.total_time)}
-                    </td>
+                    <td className="border-2 border-black p-3 text-[11px] font-black leading-none bg-gray-50 italic">{formatDuration(student.total_time)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
 
-            {/* Alt Bilgi */}
             <div className="mt-20 flex justify-between items-end">
               <div className="text-[10px] text-gray-400 font-bold italic leading-tight text-left">
                 * H. sütunları: İ: İlerleme Yüzdesi, D: Doğru, Y: Yanlış, S: O Haftadaki Süre anlamına gelir.<br/>
@@ -437,11 +405,11 @@ export default function TeacherDashboard() {
                 </div>
               </div>
 
-              <div className="mb-10 p-6 md:p-8 bg-amber-50/30 rounded-3xl border-2 border-amber-100 shadow-sm space-y-6 text-left leading-normal text-left">
+              <div className="mb-10 p-6 md:p-8 bg-amber-50/30 rounded-3xl border-2 border-amber-100 shadow-sm space-y-6 text-left leading-normal">
                 <div className="flex items-center gap-3 text-amber-600 border-b border-amber-100 pb-4 leading-none">
                   <Calendar size={24} />
-                  <div className="text-left leading-none text-left">
-                      <h3 className="font-black uppercase text-[10px] md:text-xs tracking-widest leading-none text-left uppercase">ERİŞİM TARİHİ (ZAMAN KİLİDİ)</h3>
+                  <div className="text-left leading-none">
+                      <h3 className="font-black uppercase text-[10px] md:text-xs tracking-widest leading-none text-left uppercase text-left">ERİŞİM TARİHİ (ZAMAN KİLİDİ)</h3>
                       <p className="text-[9px] text-gray-400 font-bold mt-2 uppercase tracking-tighter text-left leading-none">* Belirlenen tarih gelmeden içerik öğrenciler için kilitli kalacaktır.</p>
                   </div>
                 </div>
@@ -603,9 +571,9 @@ export default function TeacherDashboard() {
         )}
       </main>
 
-      {/* KARNE MODALI (ORİJİNAL YAPI - SÜRE FIX EKLENDİ) */}
+      {/* KARNE MODALI */}
       {selectedStudent && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[1000] flex items-center justify-center p-2 md:p-4 animate-in fade-in duration-300 overflow-y-auto leading-none text-left text-left text-left">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[1000] flex items-center justify-center p-2 md:p-4 animate-in fade-in duration-300 overflow-y-auto leading-none text-left text-left text-left text-left">
           <div className="bg-white rounded-[2rem] md:rounded-[3.5rem] w-full max-w-2xl max-h-[92vh] overflow-hidden shadow-2xl flex flex-col border-4 border-white my-auto leading-none text-left">
             <div className="p-6 md:p-10 border-b bg-gray-50 flex justify-between items-center shrink-0 leading-none text-left">
               <div className="flex items-center gap-4 leading-none text-left text-left text-left">
@@ -627,9 +595,9 @@ export default function TeacherDashboard() {
                         <span className="text-xl leading-none">{week.week_number}</span>
                       </div>
                       <div className="space-y-1 text-left leading-none text-left text-left text-left text-left">
-                        <p className="text-[10px] font-black text-amber-600 flex items-center gap-1 uppercase italic mb-2 text-left leading-none text-left text-left text-left"><Clock size={12} /> {formatDuration(week.duration)}</p>
+                        <p className="text-[10px] font-black text-amber-600 flex items-center gap-1 uppercase italic mb-2 text-left leading-none text-left text-left text-left text-left"><Clock size={12} /> {formatDuration(week.duration)}</p>
                         <div className="flex items-center gap-2 text-left leading-none text-left text-left text-left text-left">
-                           <span className="text-sm font-black text-secondary leading-none">%{week.progress} İlerleme</span>
+                           <span className="text-sm font-black text-secondary leading-none text-left">%{week.progress} İlerleme</span>
                            {week.progress === 100 && <CheckCircle size={14} className="text-green-500 leading-none" />}
                         </div>
                       </div>
@@ -640,17 +608,17 @@ export default function TeacherDashboard() {
                   </div>
                   {week.quiz_results && week.quiz_results.length > 0 && (
                     <div className="pt-6 border-t border-gray-200 text-left leading-normal text-left text-left text-left">
-                      <div className="flex items-center gap-2 mb-4 leading-none text-left text-left text-left text-left text-left text-left"><ListChecks size={16} className="text-[#ce1212]" /><h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Öğrenci Test Analizi</h5></div>
-                      <div className="grid gap-4 leading-normal text-left text-left text-left text-left">
+                      <div className="flex items-center gap-2 mb-4 leading-none text-left text-left text-left text-left text-left text-left text-left"><ListChecks size={16} className="text-[#ce1212]" /><h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Öğrenci Test Analizi</h5></div>
+                      <div className="grid gap-4 leading-normal text-left text-left text-left text-left text-left">
                         {week.quiz_results.map((result, idx) => (
                           <div key={idx} className={`p-4 rounded-2xl border leading-normal text-left ${result.is_correct ? 'bg-green-50/40 border-green-100' : 'bg-red-50/40 border-red-100'}`}>
-                            <div className="flex items-start gap-3 leading-none text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left">
-                              <div className="mt-1 shrink-0 leading-none">{result.is_correct ? <CheckCircle className="text-green-500" size={16} /> : <AlertCircle className="text-red-500" size={16} />}</div>
-                              <div className="space-y-1 min-w-0 flex-1 text-left leading-normal text-left text-left text-left text-left text-left">
+                            <div className="flex items-start gap-3 leading-none text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left">
+                              <div className="mt-1 shrink-0 leading-none text-left">{result.is_correct ? <CheckCircle className="text-green-500" size={16} /> : <AlertCircle className="text-red-500" size={16} />}</div>
+                              <div className="space-y-1 min-w-0 flex-1 text-left leading-normal text-left text-left text-left text-left text-left text-left">
                                 <p className="text-xs font-bold text-gray-800 leading-tight text-left">{result.question_text}</p>
-                                <div className="flex flex-wrap gap-x-6 gap-y-1 mt-3 leading-none text-[10px] text-left text-left text-left text-left text-left">
-                                  <div className="leading-none text-left text-left text-left text-left text-left text-left text-left text-left"><span className="text-gray-400 font-bold uppercase text-left">Verilen:</span> <span className={result.is_correct ? 'text-green-600 font-bold text-left' : 'text-red-600 font-bold text-left'}>{result.selected_option}</span></div>
-                                  {!result.is_correct && <div className="leading-none text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left"><span className="text-gray-400 font-bold uppercase text-left">Doğru:</span> <span className="text-green-600 font-bold text-left">{result.correct_option}</span></div>}
+                                <div className="flex flex-wrap gap-x-6 gap-y-1 mt-3 leading-none text-[10px] text-left text-left text-left text-left text-left text-left">
+                                  <div className="leading-none text-left text-left text-left text-left text-left text-left text-left text-left text-left"><span className="text-gray-400 font-bold uppercase text-left">Verilen:</span> <span className={result.is_correct ? 'text-green-600 font-bold text-left' : 'text-red-600 font-bold text-left'}>{result.selected_option}</span></div>
+                                  {!result.is_correct && <div className="leading-none text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left"><span className="text-gray-400 font-bold uppercase text-left">Doğru:</span> <span className="text-green-600 font-bold text-left">{result.correct_option}</span></div>}
                                 </div>
                               </div>
                             </div>
@@ -660,12 +628,12 @@ export default function TeacherDashboard() {
                     </div>
                   )}
                   {week.questions && week.questions.length > 0 && (
-                    <div className="pt-6 border-t border-gray-200/60 text-left leading-normal text-left text-left text-left text-left text-left text-left text-left text-left text-left">
-                      <div className="flex items-center gap-2 mb-4 text-secondary text-left leading-none text-left text-left text-left text-left text-left text-left text-left text-left text-left">
-                        <MessageSquare size={16} className="text-[#ce1212] leading-none" />
-                        <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-left leading-none">Öğrenci Soruları</h5>
+                    <div className="pt-6 border-t border-gray-200/60 text-left leading-normal text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left">
+                      <div className="flex items-center gap-2 mb-4 text-secondary text-left leading-none text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left">
+                        <MessageSquare size={16} className="text-[#ce1212] leading-none text-left" />
+                        <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-left leading-none text-left">Öğrenci Soruları</h5>
                       </div>
-                      <div className="grid gap-3 text-left leading-normal">
+                      <div className="grid gap-3 text-left leading-normal text-left">
                         {week.questions.map((q, i) => (
                           <div key={i} className="bg-white border border-gray-100 p-4 rounded-2xl text-[11px] text-gray-700 italic shadow-sm leading-relaxed text-left">&quot;{q}&quot;</div>
                         ))}
@@ -675,9 +643,9 @@ export default function TeacherDashboard() {
                 </div>
               ))}
               {(!selectedStudent.weekly_breakdown || selectedStudent.weekly_breakdown.length === 0) && (
-                <div className="py-24 text-center space-y-4 text-gray-300 leading-none text-center text-center text-center text-center text-center text-center">
-                    <HelpCircle size={64} className="mx-auto opacity-10 leading-none text-center text-center text-center text-center text-center text-center text-center" />
-                    <p className="font-black uppercase text-[10px] tracking-[0.2em] opacity-40 leading-none text-center text-center text-center text-center text-center text-center text-center text-center text-center">Öğrenci aktivite kaydı bulunmamaktadır.</p>
+                <div className="py-24 text-center space-y-4 text-gray-300 leading-none text-center text-center text-center text-center text-center text-center text-center">
+                    <HelpCircle size={64} className="mx-auto opacity-10 leading-none text-center text-center text-center text-center text-center text-center text-center text-center" />
+                    <p className="font-black uppercase text-[10px] tracking-[0.2em] opacity-40 leading-none text-center text-center text-center text-center text-center text-center text-center text-center text-center text-center">Öğrenci aktivite kaydı bulunmamaktadır.</p>
                 </div>
               )}
             </div>
