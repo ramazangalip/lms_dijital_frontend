@@ -112,7 +112,7 @@ export default function StudentDashboard() {
     };
   };
 
-  const fetchContents = async (isUpdate = false) => {
+ const fetchContents = async (isUpdate = false) => {
     try {
       const [contentRes, progressRes, completedMatsRes, analyticsRes] = await Promise.all([
         api.get('/contents/list/'), 
@@ -126,39 +126,33 @@ export default function StudentDashboard() {
       setCompletedMaterials(stringifiedCompleted);
       
       const rawContents = contentRes.data;
-      const progressData = progressRes.data;
       const mergedData = rawContents.map((week: WeeklyContent) => {
-        const foundProgress = progressData.find((p: ProgressData) => String(p.weekly_content) === String(week.id));
+        const foundProgress = progressRes.data.find((p: ProgressData) => String(p.weekly_content) === String(week.id));
         return { ...week, progress: foundProgress ? Math.round(foundProgress.completion_percentage) : 0, is_completed: foundProgress ? foundProgress.is_completed : false };
       });
       setContents(mergedData);
 
-     
+      // Sayfa ilk açıldığında veya hafta değiştiğinde testi kontrol et
       const currentWeek = selectedWeek || mergedData.sort((a: any, b: any) => a.week_number - b.week_number)[0];
       if (currentWeek) {
         const quizMat = currentWeek.materials.find((m: any) => m.content_type === 'form');
         if (quizMat && stringifiedCompleted.includes(String(quizMat.id))) {
-           try {
-             const res = await api.get(`/contents/quiz/${quizMat.quiz.id}/last-attempt/`);
-             if (res.data) {
-               setQuizResult({
-                 score: res.data.score,
-                 correct: res.data.correct,
-                 wrong: res.data.wrong
-               });
-               setCurrentAttemptId(String(res.data.id));
-             }
-           } catch (e) { console.error("Geçmiş sınav sonucu yüklenemedi."); }
+           const res = await api.get(`/contents/quiz/${quizMat.quiz.id}/last-attempt/`);
+           if (res.data) {
+             setQuizResult({
+               score: res.data.score,
+               correct: res.data.correct,
+               wrong: res.data.wrong
+             });
+             setCurrentAttemptId(String(res.data.id));
+           }
         }
       }
-      // -------------------------------------------------------------
 
       if (isInitialMount.current && mergedData.length > 0 && !selectedWeek) {
-        const firstWeek = mergedData.sort((a: any, b: any) => a.week_number - b.week_number)[0];
-        setSelectedWeek(firstWeek); setIsIntroView(true); isInitialMount.current = false;
-      } else if (selectedWeek) {
-        const updated = mergedData.find((c: any) => String(c.id) === String(selectedWeek.id));
-        if (updated) setSelectedWeek(prev => prev ? { ...updated, materials: prev.materials } : updated);
+        setSelectedWeek(mergedData.sort((a: any, b: any) => a.week_number - b.week_number)[0]);
+        setIsIntroView(true); 
+        isInitialMount.current = false;
       }
     } catch (err) { console.error("Veri çekme hatası."); } finally { setLoading(false); }
   };
@@ -289,9 +283,24 @@ export default function StudentDashboard() {
     return () => { if (watchTimerRef.current) clearInterval(watchTimerRef.current); };
   }, [activeMaterial?.id, isIntroView, completedMaterials.length, introStatus.isWatched]);
 
+  // --- HAFTA DEĞİŞTİĞİNDE SINAV SONUCUNU TEMİZLE VEYA GETİR ---
   const handleWeekSelection = (weekData: WeeklyContent) => {
     if (weekData.is_locked) return;
-    setSelectedWeek(weekData); setQuizResult(null); setSelectedAnswers({}); setCurrentAttemptId(null); setCurrentCardIndex(0); watchTimeInternalRef.current = 0; setWatchTime(0); setIsIntroView(false); 
+    setSelectedWeek(weekData);
+    setQuizResult(null); // Önce temizle
+    setSelectedAnswers({});
+    setCurrentAttemptId(null);
+    setIsIntroView(false);
+    
+    // Seçilen haftada test varsa ve bitmişse sonucunu getir
+    const quizMat = weekData.materials.find(m => m.content_type === 'form');
+    if (quizMat && completedMaterials.includes(String(quizMat.id))) {
+      api.get(`/contents/quiz/${quizMat.quiz?.id}/last-attempt/`).then(res => {
+        setQuizResult({ score: res.data.score, correct: res.data.correct, wrong: res.data.wrong });
+        setCurrentAttemptId(String(res.data.id));
+      }).catch(() => {});
+    }
+
     if (weekData.materials.length > 0) setActiveMaterial(getSortedMaterials(weekData.materials)[0]);
     else setActiveMaterial(null);
     setIsSidebarOpen(false); 
@@ -462,7 +471,7 @@ export default function StudentDashboard() {
                           ) : (completedMaterials.includes(String(activeMaterial.id)) || quizResult) ? (
                             <div className="text-center py-4 space-y-4 animate-in zoom-in-95 leading-none text-left text-center">
                               <div className="w-14 h-14 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto border-2 border-green-100 shadow-xl animate-bounce leading-none text-left text-center text-center"><Award size={28} /></div>
-                              {quizResult && (<div className="space-y-4 text-center leading-none text-left text-center text-center"><h3 className="text-xl md:text-2xl font-black text-secondary uppercase tracking-tighter text-primary text-center">Tebrikler!</h3><div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-lg mx-auto text-center"><div className="bg-gray-50 p-4 rounded-xl border-2 border-gray-100 text-center shadow-sm text-left"><p className="text-[8px] font-black text-gray-400 uppercase mb-2 text-left">Puan</p><p className="text-xl font-black text-secondary text-center">%{quizResult.score}</p></div><div className="bg-green-50 p-4 rounded-xl border-2 border-green-100  shadow-sm  text-center"><p className="text-[8px] font-black text-green-600 uppercase mb-2 text-center">Doğru</p><p className="text-xl font-black text-green-600  text-center">{quizResult.correct}</p></div><div className="bg-red-50 p-4 rounded-xl border-2 border-red-100  shadow-sm  text-center"><p className="text-[8px] font-black text-red-600 uppercase mb-2  text-center">Yanlış</p><p className="text-xl font-black text-red-600 text-center">{quizResult.wrong}</p></div></div></div>)}
+                              {quizResult && (<div className="space-y-4 text-center leading-none text-left text-center text-center"><h3 className="text-xl md:text-2xl font-black text-secondary uppercase tracking-tighter text-primary text-center">Tebrikler!</h3><div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-lg mx-auto text-center"><div className="bg-gray-50 p-4 rounded-xl border-2 border-gray-100 text-center shadow-sm "><p className="text-[8px] font-black text-gray-400 uppercase mb-2">SKOR</p><p className="text-xl font-black text-secondary text-center">%{quizResult.score}</p></div><div className="bg-green-50 p-4 rounded-xl border-2 border-green-100  shadow-sm  text-center"><p className="text-[8px] font-black text-green-600 uppercase mb-2 text-center">Doğru</p><p className="text-xl font-black text-green-600  text-center">{quizResult.correct}</p></div><div className="bg-red-50 p-4 rounded-xl border-2 border-red-100  shadow-sm  text-center"><p className="text-[8px] font-black text-red-600 uppercase mb-2  text-center">Yanlış</p><p className="text-xl font-black text-red-600 text-center">{quizResult.wrong}</p></div></div></div>)}
                               <button onClick={handleFetchAIAnalysis} className="mx-auto flex items-center gap-2 bg-secondary text-white px-10 py-5 rounded-2xl font-black text-[10px] shadow-xl uppercase hover:scale-105 active:scale-95 transition-all mt-4 text-left text-center text-center text-center"><Sparkles size={16} className="text-primary animate-pulse text-left" /> ANALİZİ GÖR</button>
                             </div>
                           ) : (
