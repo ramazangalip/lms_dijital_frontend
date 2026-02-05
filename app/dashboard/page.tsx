@@ -65,6 +65,7 @@ export default function StudentDashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [pointsEarned, setPointsEarned] = useState<{show: boolean, amount: number}>({show: false, amount: 0});
   const [userTotalPoints, setUserTotalPoints] = useState(0);
+  const trackingInterval = useRef<NodeJS.Timeout | null>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [quizResult, setQuizResult] = useState<{score: number, correct: number, wrong: number} | null>(null);
   const [quizSubmitting, setQuizSubmitting] = useState(false);
@@ -157,6 +158,32 @@ export default function StudentDashboard() {
       await fetchContents(true);
     } catch (err) { console.error("Tamamlama hatası."); }
   };
+
+  useEffect(() => {
+    if (trackingInterval.current) {
+      clearInterval(trackingInterval.current);
+      trackingInterval.current = null;
+    }
+    if (selectedWeek) {
+      const sendPing = async () => {
+        try {
+          await api.post('/contents/track-activity/', {
+            weekly_content_id: selectedWeek.id,
+            seconds: 30 
+          });
+        } catch (err) { 
+          console.error("Ping hatası"); 
+        }
+      };
+      trackingInterval.current = setInterval(sendPing, 30000);
+    }
+    return () => { 
+      if (trackingInterval.current) {
+        clearInterval(trackingInterval.current);
+        trackingInterval.current = null;
+      }
+    };
+  }, [selectedWeek?.id]);
 
   const handleLogout = () => {
     localStorage.clear();
