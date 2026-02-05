@@ -120,9 +120,11 @@ export default function StudentDashboard() {
         api.get('/contents/completed-materials-ids/'), 
         api.get('/contents/analytics/')
       ]);
+      
       setUserTotalPoints(analyticsRes.data.total_points || 0);
       const stringifiedCompleted = (completedMatsRes.data || []).map((id: any) => String(id));
       setCompletedMaterials(stringifiedCompleted);
+      
       const rawContents = contentRes.data;
       const progressData = progressRes.data;
       const mergedData = rawContents.map((week: WeeklyContent) => {
@@ -130,6 +132,27 @@ export default function StudentDashboard() {
         return { ...week, progress: foundProgress ? Math.round(foundProgress.completion_percentage) : 0, is_completed: foundProgress ? foundProgress.is_completed : false };
       });
       setContents(mergedData);
+
+     
+      const currentWeek = selectedWeek || mergedData.sort((a: any, b: any) => a.week_number - b.week_number)[0];
+      if (currentWeek) {
+        const quizMat = currentWeek.materials.find((m: any) => m.content_type === 'form');
+        if (quizMat && stringifiedCompleted.includes(String(quizMat.id))) {
+           try {
+             const res = await api.get(`/contents/quiz/${quizMat.quiz.id}/last-attempt/`);
+             if (res.data) {
+               setQuizResult({
+                 score: res.data.score,
+                 correct: res.data.correct,
+                 wrong: res.data.wrong
+               });
+               setCurrentAttemptId(String(res.data.id));
+             }
+           } catch (e) { console.error("Geçmiş sınav sonucu yüklenemedi."); }
+        }
+      }
+      // -------------------------------------------------------------
+
       if (isInitialMount.current && mergedData.length > 0 && !selectedWeek) {
         const firstWeek = mergedData.sort((a: any, b: any) => a.week_number - b.week_number)[0];
         setSelectedWeek(firstWeek); setIsIntroView(true); isInitialMount.current = false;
@@ -190,6 +213,7 @@ export default function StudentDashboard() {
     window.location.href = '/login';
   };
 
+  // --- TEST GÖNDERİMİ ---
   const handleQuizSubmit = async () => {
     if (!activeMaterial?.quiz) return;
     const totalQs = activeMaterial.quiz.questions.length;
@@ -198,8 +222,15 @@ export default function StudentDashboard() {
     try {
       const answers = Object.entries(selectedAnswers).map(([qId, oId]) => ({ question_id: String(qId), option_id: String(oId) }));
       const res = await api.post(`/contents/quiz/${String(activeMaterial.quiz.id)}/submit/`, { answers });
-      setQuizResult({ score: res.data.score, correct: res.data.correct || res.data.correct_answers || 0, wrong: res.data.wrong || res.data.wrong_answers || 0 });
+      
+      // Backend'den gelen yeni skor bilgilerini set et
+      setQuizResult({ 
+        score: res.data.score, 
+        correct: res.data.correct, 
+        wrong: res.data.wrong 
+      });
       setCurrentAttemptId(String(res.data.attempt_id));
+
       const earned = res.data.points_earned || 0;
       if (earned > 0) {
           setPointsEarned({ show: true, amount: earned });
@@ -431,7 +462,7 @@ export default function StudentDashboard() {
                           ) : (completedMaterials.includes(String(activeMaterial.id)) || quizResult) ? (
                             <div className="text-center py-4 space-y-4 animate-in zoom-in-95 leading-none text-left text-center">
                               <div className="w-14 h-14 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto border-2 border-green-100 shadow-xl animate-bounce leading-none text-left text-center text-center"><Award size={28} /></div>
-                              {quizResult && (<div className="space-y-4 text-center leading-none text-left text-center text-center"><h3 className="text-xl md:text-2xl font-black text-secondary uppercase tracking-tighter text-primary text-center">Tebrikler!</h3><div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-lg mx-auto text-center"><div className="bg-gray-50 p-4 rounded-xl border-2 border-gray-100 text-center shadow-sm text-left"><p className="text-[8px] font-black text-gray-400 uppercase mb-2 text-left">Puan</p><p className="text-xl font-black text-secondary text-left text-center">%{quizResult.score}</p></div><div className="bg-green-50 p-4 rounded-xl border-2 border-green-100 text-center shadow-sm text-left text-center"><p className="text-[8px] font-black text-green-600 uppercase mb-2 text-left text-center">Doğru</p><p className="text-xl font-black text-green-600 text-left text-center">{quizResult.correct}</p></div><div className="bg-red-50 p-4 rounded-xl border-2 border-red-100 text-center shadow-sm text-left text-center"><p className="text-[8px] font-black text-red-600 uppercase mb-2 text-center text-center">Yanlış</p><p className="text-xl font-black text-red-600 text-left text-center">{quizResult.wrong}</p></div></div></div>)}
+                              {quizResult && (<div className="space-y-4 text-center leading-none text-left text-center text-center"><h3 className="text-xl md:text-2xl font-black text-secondary uppercase tracking-tighter text-primary text-center">Tebrikler!</h3><div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-lg mx-auto text-center"><div className="bg-gray-50 p-4 rounded-xl border-2 border-gray-100 text-center shadow-sm text-left"><p className="text-[8px] font-black text-gray-400 uppercase mb-2 text-left">Puan</p><p className="text-xl font-black text-secondary text-center">%{quizResult.score}</p></div><div className="bg-green-50 p-4 rounded-xl border-2 border-green-100  shadow-sm  text-center"><p className="text-[8px] font-black text-green-600 uppercase mb-2 text-center">Doğru</p><p className="text-xl font-black text-green-600  text-center">{quizResult.correct}</p></div><div className="bg-red-50 p-4 rounded-xl border-2 border-red-100  shadow-sm  text-center"><p className="text-[8px] font-black text-red-600 uppercase mb-2  text-center">Yanlış</p><p className="text-xl font-black text-red-600 text-center">{quizResult.wrong}</p></div></div></div>)}
                               <button onClick={handleFetchAIAnalysis} className="mx-auto flex items-center gap-2 bg-secondary text-white px-10 py-5 rounded-2xl font-black text-[10px] shadow-xl uppercase hover:scale-105 active:scale-95 transition-all mt-4 text-left text-center text-center text-center"><Sparkles size={16} className="text-primary animate-pulse text-left" /> ANALİZİ GÖR</button>
                             </div>
                           ) : (
@@ -484,13 +515,13 @@ export default function StudentDashboard() {
       <div className="fixed bottom-4 right-4 z-[999] flex flex-col items-end gap-2 shrink-0 leading-none text-left text-left text-left text-left text-left">
         {isChatOpen && (
           <div className="w-[240px] md:w-[280px] h-[360px] bg-white rounded-[1.25rem] shadow-2xl border border-gray-100 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-300 ring-1 ring-black/5 leading-none text-left text-left text-left">
-            <div className="bg-secondary p-3 flex items-center justify-between text-white shadow-lg leading-none text-left text-left text-left"><div className="flex items-center gap-2 leading-none text-left text-left text-left text-left"><div className="bg-primary p-1.5 rounded-lg shadow-md leading-none text-center text-left text-left text-left"><Bot size={14} className="text-left" /></div><h4 className="text-[9px] font-black tracking-widest uppercase leading-none text-left text-left text-left">BÜ-AI ASİSTAN</h4></div><button onClick={() => setIsChatOpen(false)} className="hover:text-primary transition-all leading-none text-left text-left text-left"><X size={14} className="text-left text-left" /></button></div>
-            <div className="flex-1 overflow-y-auto p-3 space-y-2.5 bg-gray-50/50 custom-scrollbar leading-relaxed text-left text-left text-left text-left">
-              {messages.map((msg, idx) => (<div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end text-left' : 'justify-start text-left'} animate-in fade-in leading-relaxed text-left text-left`}><div className={`max-w-[90%] p-2 rounded-lg text-[9px] font-medium shadow-sm leading-relaxed text-left text-left ${msg.role === 'user' ? 'bg-primary text-white rounded-tr-none text-left' : 'bg-white text-secondary rounded-tl-none border border-gray-100 text-left'}`}>{msg.content}</div></div>))}
-              {isTyping && <div className="flex justify-start leading-none text-left text-left text-left text-left text-left text-left"><div className="bg-white p-2 rounded-lg rounded-tl-none shadow-sm flex gap-1 animate-pulse border border-gray-100 leading-none text-left text-left"><span className="w-1 h-1 bg-gray-300 rounded-full text-left text-left"></span><span className="w-1 h-1 bg-gray-300 rounded-full text-left text-left"></span><span className="w-1 h-1 bg-gray-300 rounded-full text-left text-left"></span></div></div>}
-              <div ref={chatEndRef} className="text-left text-left text-left text-left" />
+            <div className="bg-secondary p-3 flex items-center justify-between text-white shadow-lg leading-none text-left "><div className="flex items-center gap-2 leading-none text-left "><div className="bg-primary p-1.5 rounded-lg shadow-md leading-none text-center text-left text-left text-left"><Bot size={14} className="text-left" /></div><h4 className="text-[9px] font-black tracking-widest uppercase leading-none text-left text-left text-left">BÜ-AI ASİSTAN</h4></div><button onClick={() => setIsChatOpen(false)} className="hover:text-primary transition-all leading-none text-left text-left text-left"><X size={14} className="text-left text-left" /></button></div>
+            <div className="flex-1 overflow-y-auto p-3 space-y-2.5 bg-gray-50/50 custom-scrollbar leading-relaxed text-left">
+              {messages.map((msg, idx) => (<div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end text-left' : 'justify-start text-left'} animate-in fade-in leading-relaxed text-left `}><div className={`max-w-[90%] p-2 rounded-lg text-[9px] font-medium shadow-sm leading-relaxed text-left text-left ${msg.role === 'user' ? 'bg-primary text-white rounded-tr-none text-left' : 'bg-white text-secondary rounded-tl-none border border-gray-100 text-left'}`}>{msg.content}</div></div>))}
+              {isTyping && <div className="flex justify-start leading-none text-left "><div className="bg-white p-2 rounded-lg rounded-tl-none shadow-sm flex gap-1 animate-pulse border border-gray-100 leading-none text-left text-left"><span className="w-1 h-1 bg-gray-300 rounded-full text-left text-left"></span><span className="w-1 h-1 bg-gray-300 rounded-full text-left text-left"></span><span className="w-1 h-1 bg-gray-300 rounded-full text-left"></span></div></div>}
+              <div ref={chatEndRef} className="text-left " />
             </div>
-            <form onSubmit={handleSendChatMessage} className="p-2.5 bg-white border-t border-gray-100 flex gap-2 leading-none text-left text-left text-left text-left text-left"><input type="text" placeholder="Sor..." className="flex-1 bg-gray-50 border-2 border-gray-100 rounded-lg px-3 py-1.5 text-[9px] outline-none focus:border-primary transition-all font-bold text-secondary shadow-inner leading-none text-left text-left" value={chatInput} onChange={(e) => setChatInput(e.target.value)} /><button type="submit" className="bg-primary text-white p-2 rounded-lg shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center leading-none text-left text-left"><Send size={12} className="text-left" /></button></form>
+            <form onSubmit={handleSendChatMessage} className="p-2.5 bg-white border-t border-gray-100 flex gap-2 leading-none text-left"><input type="text" placeholder="Sor..." className="flex-1 bg-gray-50 border-2 border-gray-100 rounded-lg px-3 py-1.5 text-[9px] outline-none focus:border-primary transition-all font-bold text-secondary shadow-inner leading-none text-left text-left" value={chatInput} onChange={(e) => setChatInput(e.target.value)} /><button type="submit" className="bg-primary text-white p-2 rounded-lg shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center leading-none text-left text-left"><Send size={12} className="text-left" /></button></form>
           </div>
         )}
         <button onClick={() => setIsChatOpen(!isChatOpen)} className={`w-10 h-10 md:w-11 md:h-11 rounded-xl flex items-center justify-center shadow-xl transition-all hover:scale-110 active:scale-95 z-[1000] border-2 border-white leading-none text-left text-left text-left text-left text-left ${isChatOpen ? 'bg-secondary text-white' : 'bg-primary text-white'}`}>{isChatOpen ? <X size={18} /> : <Bot size={20} />}</button>
@@ -498,14 +529,14 @@ export default function StudentDashboard() {
 
       {/* AI ANALİZ MODALI */}
       {isAnalysisModalOpen && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-secondary/90 backdrop-blur-md animate-in fade-in duration-300 overflow-y-auto leading-none text-left text-left text-left text-left">
-          <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.5)] overflow-hidden border-4 border-white my-auto flex flex-col max-h-[90vh] leading-none text-left text-left text-left text-left text-left">
-            <div className="bg-secondary p-8 flex items-center justify-between text-white border-b-4 border-primary leading-none text-left"><div className="flex items-center gap-5 leading-none text-left text-left text-left text-left text-left"><div className="bg-primary p-3 rounded-2xl shadow-lg leading-none text-center text-left text-left text-left text-left shadow-red-500/20"><Bot size={28} className="text-left" /></div><div className="leading-none text-left text-left text-left text-left text-left text-left text-left text-left"><h3 className="font-black uppercase tracking-tighter text-xl leading-none text-left text-left text-left text-left">BÜ-AI Analiz Raporu</h3><p className="text-primary text-[10px] font-bold uppercase tracking-widest mt-1 leading-none text-left text-left text-left text-left">Eğitim Mentörü</p></div></div><button onClick={() => setIsAnalysisModalOpen(false)} className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-primary transition-all leading-none text-left text-left text-left text-left text-left text-center text-center text-center text-center text-center"><X size={24} className="text-left" /></button></div>
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-secondary/90 backdrop-blur-md animate-in fade-in duration-300 overflow-y-auto leading-none  text-left">
+          <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.5)] overflow-hidden border-4 border-white my-auto flex flex-col max-h-[90vh] leading-none  text-left">
+            <div className="bg-secondary p-8 flex items-center justify-between text-white border-b-4 border-primary leading-none text-left"><div className="flex items-center gap-5 leading-none  text-left"><div className="bg-primary p-3 rounded-2xl shadow-lg leading-none text-center  shadow-red-500/20"><Bot size={28} className="text-left" /></div><div className="leading-none text-left text-left text-left text-left text-left text-left text-left text-left"><h3 className="font-black uppercase tracking-tighter text-xl leading-none text-left text-left text-left text-left">BÜ-AI Analiz Raporu</h3><p className="text-primary text-[10px] font-bold uppercase tracking-widest mt-1 leading-none text-left text-left text-left text-left">Eğitim Mentörü</p></div></div><button onClick={() => setIsAnalysisModalOpen(false)} className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-primary transition-all leading-none text-left text-left text-left text-left text-left text-center text-center text-center text-center text-center"><X size={24} className="text-left" /></button></div>
             <div className="p-8 md:p-12 overflow-y-auto custom-scrollbar flex-1 bg-gray-50/50 min-h-[300px] leading-relaxed  text-left">
-              {isAnalysisLoading ? (<div className="flex flex-col items-center justify-center py-20 gap-8 leading-none  text-center"><div className="w-20 h-20 border-4 border-primary border-t-transparent rounded-full animate-spin leading-none text-left text-left text-left text-left text-left text-left"></div><p className="text-secondary font-black text-xl uppercase tracking-widest animate-pulse leading-none text-left text-left text-left text-left text-left text-left text-left text-left text-left">Veriler Analiz Ediliyor...</p></div>
-              ) : (<div className="bg-white border-2 border-primary/10 p-8 rounded-[2.5rem] shadow-sm leading-relaxed animate-in slide-in-from-bottom-4   text-left"><div className="flex items-center gap-3 mb-6 text-primary leading-none text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left"><Sparkles size={20} className="text-left text-left" /><span className="font-black text-xs uppercase tracking-widest leading-none text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left">Akıllı Geri Bildirim</span></div><p className="text-secondary font-medium leading-loose text-base italic leading-relaxed whitespace-pre-line text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left">&quot;{aiAnalysisFeedback}&quot;</p></div>)}
+              {isAnalysisLoading ? (<div className="flex flex-col items-center justify-center py-20 gap-8 leading-none  text-center"><div className="w-20 h-20 border-4 border-primary border-t-transparent rounded-full animate-spin leading-none  text-left"></div><p className="text-secondary font-black text-xl uppercase tracking-widest animate-pulse leading-none text-left  ">Veriler Analiz Ediliyor...</p></div>
+              ) : (<div className="bg-white border-2 border-primary/10 p-8 rounded-[2.5rem] shadow-sm leading-relaxed animate-in slide-in-from-bottom-4   text-left"><div className="flex items-center gap-3 mb-6 text-primary leading-none text-left"><Sparkles size={20} className="text-left " /><span className="font-black text-xs uppercase tracking-widest leading-none text-left">Akıllı Geri Bildirim</span></div><p className="text-secondary font-medium leading-loose text-base italic leading-relaxed whitespace-pre-line text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left">&quot;{aiAnalysisFeedback}&quot;</p></div>)}
             </div>
-            <div className="p-8 bg-white border-t flex justify-center leading-none  text-left"><button onClick={() => setIsAnalysisModalOpen(false)} className="w-full md:w-auto bg-secondary text-white px-16 py-5 rounded-[2rem] font-black text-xs uppercase shadow-xl active:scale-95 leading-none text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left">Kapat Ve Devam Et</button></div>
+            <div className="p-8 bg-white border-t flex justify-center leading-none  text-left"><button onClick={() => setIsAnalysisModalOpen(false)} className="w-full md:w-auto bg-secondary text-white px-16 py-5 rounded-[2rem] font-black text-xs uppercase shadow-xl active:scale-95 leading-none  text-left">Kapat Ve Devam Et</button></div>
           </div>
         </div>
       )}
