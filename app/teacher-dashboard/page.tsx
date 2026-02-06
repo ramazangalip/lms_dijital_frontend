@@ -81,6 +81,9 @@ interface WeeklyProgress {
   week_number: number;
   progress: number;
   duration: string;
+  duration_2?: string; // Eklendi
+  score_1?: number;    // Eklendi
+  score_2?: number;    // Eklendi
   questions?: string[];
   quiz_results?: QuizDetailAnalysis[]; 
 }
@@ -95,10 +98,16 @@ interface BulkStudentData {
   weekly_breakdown: {
     week: number;
     progress: number;
+    // Tur 1
     duration_seconds: number;
     correct: number;
     wrong: number;
+    // Tur 2
+    duration_seconds_2: number; // Eklendi
+    correct_2: number;          // Eklendi
+    wrong_2: number;            // Eklendi
     has_quiz: boolean;
+    is_round_2_started: boolean; // Eklendi
   }[];
 }
 
@@ -382,74 +391,81 @@ export default function TeacherDashboard() {
       {/* ---------------------------------------------------------------- */}
       {/* 1. PDF ŞABLONU (Gizli - Sadece Yazıcıda Görünür) */}
       {/* ---------------------------------------------------------------- */}
-      <div id="bulk-report-pdf" className="hidden print:block bg-white p-0 text-left">
-        <div className="p-10 text-left">
-            <div className="flex flex-col items-center mb-10 border-b-4 border-black pb-8 text-center text-left">
-              <img src="/okul-logo.png" alt="Okul Logosu" className="h-28 object-contain mb-6" onError={(e) => (e.currentTarget.style.display = 'none')} />
-              <h1 className="text-3xl font-black uppercase tracking-tighter text-black text-left">SİSTEM GENELİ AKADEMİK PERFORMANS ÇİZELGESİ</h1>
-              <p className="text-lg font-bold text-gray-700 mt-2 uppercase tracking-widest text-left">
+      {/* ---------------------------------------------------------------- */}
+{/* 1. PDF ŞABLONU (Gizli - Sadece Yazıcıda Görünür) */}
+{/* ---------------------------------------------------------------- */}
+<div id="bulk-report-pdf" className="hidden print:block bg-white p-0 text-left">
+    <div className="p-10 text-left">
+        {/* LOGO VE BAŞLIK */}
+        <div className="flex flex-col items-center mb-10 border-b-4 border-black pb-8 text-center">
+            <img src="/okul-logo.png" alt="Okul Logosu" className="h-28 object-contain mb-6" onError={(e) => (e.currentTarget.style.display = 'none')} />
+            <h1 className="text-3xl font-black uppercase tracking-tighter text-black">SİSTEM GENELİ AKADEMİK GELİŞİM VE PERFORMANS ÇİZELGESİ</h1>
+            <p className="text-lg font-bold text-gray-700 mt-2 uppercase tracking-widest">
                 Bölüm: {selectedDepartment === 'all' ? 'TÜM BÖLÜMLER' : getDeptName(selectedDepartment).toUpperCase()}
-              </p>
-              <div className="flex gap-10 mt-4 text-[10px] font-black uppercase text-gray-500 text-left">
-                  <span className="text-left">Ders: Dijital Okuryazarlık</span>
-                  <span className="text-left">Oluşturulma: {new Date().toLocaleDateString('tr-TR')}</span>
-                  <span className="text-left">Toplam Öğrenci: {filteredBulkData.length}</span>
-              </div>
-            </div>
-
-            <table className="w-full border-collapse border-2 border-black text-left">
-              <thead className="text-left">
-                <tr className="bg-black text-white text-center text-left">
-                  <th className="border-2 border-black p-3 text-[10px] font-black uppercase leading-none text-left w-48">Öğrenci Adı Soyadı</th>
-                  {Array.from({ length: 14 }, (_, i) => i + 1).map(n => (
-                    <th key={n} className="border-2 border-black p-1 text-[7px] font-black uppercase leading-none text-center w-12">
-                        H.{n}<br/>(İ/D/Y/S)
-                    </th>
-                  ))}
-                  <th className="border-2 border-black p-3 text-[10px] font-black uppercase leading-none text-center bg-gray-800">Top. Puan</th>
-                  <th className="border-2 border-black p-3 text-[10px] font-black uppercase leading-none text-center bg-gray-800">Top. Süre</th>
-                </tr>
-              </thead>
-              <tbody className="text-left font-bold">
-                {filteredBulkData.map((student, idx) => (
-                  <tr key={idx} className="text-center hover:bg-gray-50 leading-none text-left">
-                    <td className="border-2 border-black p-3 text-[10px] font-black text-left uppercase leading-tight">{student.full_name}</td>
-                    {student.weekly_breakdown.map((week, wIdx) => (
-                      <td key={wIdx} className="border-2 border-black p-0.5 text-[7px] font-bold leading-none text-left">
-                        <div className="flex flex-col items-center justify-center gap-0.5">
-                            <span className="text-blue-700 font-black">%{Math.round(week.progress)}</span>
-                            {week.has_quiz ? (
-                                <div className="flex gap-0.5 text-[6px] font-bold">
-                                    <span className="text-green-700">{week.correct}D</span>
-                                    <span className="text-red-700">{week.wrong}Y</span>
-                                </div>
-                            ) : <span className="text-gray-300 font-normal">-/-</span>}
-                            <span className="text-amber-600 text-[6px] mt-0.5 font-black">
-                                {week.duration_seconds > 0 ? `${Math.floor(week.duration_seconds / 60)}d` : '0'}
-                            </span>
-                        </div>
-                      </td>
-                    ))}
-                    <td className="border-2 border-black p-3 text-sm font-black text-blue-800 bg-gray-50">{student.total_points} Puan</td>
-                    <td className="border-2 border-black p-3 text-[9px] font-black leading-none bg-gray-50 italic text-left">{formatDuration(student.total_time)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            <div className="mt-20 flex justify-between items-end text-left">
-              <div className="text-[10px] text-gray-400 font-bold italic leading-tight text-left">
-                * H. sütunları: İ: İlerleme %, D: Doğru, Y: Yanlış, S: Süre (dk).<br/>
-                * Toplam Puan akademisyen tarafından her materyal için belirlenen değerlerin toplamıdır.<br/>
-                * Bu çizelge BÜ-LMS üzerinden otomatik olarak üretilmiştir.
-              </div>
-              <div className="text-center text-left">
-                <p className="text-[10px] font-black uppercase mb-16 text-left">Ders Sorumlusu İmzası</p>
-                <div className="w-64 border-b-2 border-black text-left"></div>
-              </div>
+            </p>
+            <div className="flex gap-10 mt-4 text-[10px] font-black uppercase text-gray-500">
+                <span>Ders: Dijital Okuryazarlık</span>
+                <span>Rapor Tarihi: {new Date().toLocaleDateString('tr-TR')}</span>
+                <span>Kayıtlı Öğrenci: {filteredBulkData.length}</span>
             </div>
         </div>
-      </div>
+
+        {/* ANA TABLO */}
+        <table className="w-full border-collapse border-2 border-black">
+            <thead>
+                <tr className="bg-black text-white text-center">
+                    <th className="border-2 border-black p-3 text-[10px] font-black uppercase leading-none text-left w-48">Öğrenci Adı Soyadı</th>
+                    {Array.from({ length: 14 }, (_, i) => i + 1).map(n => (
+                        <th key={n} className="border-2 border-black p-1 text-[7px] font-black uppercase leading-none text-center w-16">
+                            H.{n}<br/>(D1 / D2)
+                        </th>
+                    ))}
+                    <th className="border-2 border-black p-3 text-[10px] font-black uppercase leading-none text-center bg-gray-800">Top. Puan</th>
+                    <th className="border-2 border-black p-3 text-[10px] font-black uppercase text-center bg-gray-800">Top. Süre</th>
+                </tr>
+            </thead>
+            <tbody className="text-left font-bold">
+                {filteredBulkData.map((student, idx) => (
+                    <tr key={idx} className="text-center hover:bg-gray-50 leading-none">
+                        <td className="border-2 border-black p-3 text-[10px] font-black text-left uppercase leading-tight">{student.full_name}</td>
+                        
+                        {student.weekly_breakdown.map((week, wIdx) => (
+                            <td key={wIdx} className="border-2 border-black p-0.5 text-[6px] font-bold leading-none">
+                                <div className="flex flex-col items-center gap-0.5">
+                                    {/* DENEME 1 (D1) VERİLERİ */}
+                                    <div className="flex flex-col border-b border-gray-100 pb-0.5 w-full items-center">
+                                        <span className="text-gray-400 font-black scale-[0.8]">D1</span>
+                                        <span className="text-blue-700">%{Math.round(week.progress)}</span>
+                                        <span className="text-gray-600">{week.correct}D/{week.wrong}Y</span>
+                                    </div>
+
+                                    {/* DENEME 2 (D2) VERİLERİ (SADECE VARSA) */}
+                                    {week.is_round_2_started ? (
+                                        <div className="flex flex-col w-full items-center pt-0.5">
+                                            <span className="text-amber-600 font-black scale-[0.8]">D2</span>
+                                            <span className="text-green-700 font-black">{week.correct_2}D/{week.wrong_2}Y</span>
+                                            <span className="text-amber-600 italic font-medium">
+                                                {week.duration_seconds_2 > 0 ? `${Math.floor(week.duration_seconds_2 / 60)}dk` : '0'}
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <div className="py-1 text-gray-300 font-normal">D2: -</div>
+                                    )}
+                                </div>
+                            </td>
+                        ))}
+
+                        <td className="border-2 border-black p-3 text-sm font-black text-blue-800 bg-gray-50">{student.total_points} P.</td>
+                        <td className="border-2 border-black p-3 text-[9px] font-black leading-none bg-gray-50 italic">{formatDuration(student.total_time)}</td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+
+        {/* ALT BİLGİ VE İMZA */}
+       
+    </div>
+</div>
 
       {/* ---------------------------------------------------------------- */}
       {/* 2. NORMAL ARAYÜZ (HEADER) */}
@@ -666,46 +682,82 @@ export default function TeacherDashboard() {
                </div>
             </div>
 
-            <div className="bg-white rounded-3xl md:rounded-[2.5rem] shadow-2xl border border-gray-100 overflow-hidden text-left leading-normal text-left text-left text-left">
-              <div className="p-6 md:p-8 border-b border-gray-50 bg-gray-50/50 flex items-center justify-between text-left leading-none text-left text-left text-left">
-                <div className="flex items-center gap-2 text-left leading-none text-left text-left text-left"><BarChart3 size={18} className="text-[#ce1212] text-left" /><h2 className="font-black text-secondary uppercase text-[10px] md:text-xs tracking-widest leading-none text-left">Akademik Takip Çizelgesi</h2></div>
+            <div className="bg-white rounded-3xl md:rounded-[2.5rem] shadow-2xl border border-gray-100 overflow-hidden text-left leading-normal">
+  <div className="p-6 md:p-8 border-b border-gray-50 bg-gray-50/50 flex items-center justify-between">
+    <div className="flex items-center gap-2">
+      <BarChart3 size={18} className="text-[#ce1212]" />
+      <h2 className="font-black text-secondary uppercase text-[10px] md:text-xs tracking-widest">
+        Akademik Takip Çizelgesi
+      </h2>
+    </div>
+  </div>
+  <div className="overflow-x-auto custom-scrollbar">
+    <table className="w-full text-left border-collapse min-w-[800px]">
+      <thead>
+        <tr className="bg-gray-100/50 text-gray-400 text-[9px] md:text-[10px] font-black uppercase tracking-widest leading-none">
+          <th className="p-5 md:p-8">AD SOYAD / BÖLÜM</th>
+          <th className="p-5 md:p-8">PUAN / AKTİF İLERLEME</th>
+          <th className="p-5 md:p-8">TOPLAM SÜRE</th>
+          <th className="p-5 md:p-8 text-center">İŞLEM</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-gray-100">
+        {filteredAnalytics.map((student) => (
+          <tr key={student.id} className="hover:bg-gray-50/50 transition-all group">
+            <td className="p-5 md:p-8">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-secondary text-white rounded-full flex items-center justify-center font-bold text-xs shadow-md shrink-0 ring-4 ring-gray-50 uppercase">
+                  {student.first_name[0]}{student.last_name[0]}
+                </div>
+                <div className="min-w-0 flex-1 leading-tight">
+                  <p className="font-black text-black text-sm truncate uppercase">{student.first_name} {student.last_name}</p>
+                  <p className="text-[9px] text-[#ce1212] font-black mt-1 uppercase">{getDeptName(student.department)}</p>
+                </div>
               </div>
-              <div className="overflow-x-auto custom-scrollbar leading-none text-left">
-                <table className="w-full text-left border-collapse min-w-[800px] leading-none text-left">
-                  <thead className="text-left">
-                    <tr className="bg-gray-100/50 text-gray-400 text-[9px] md:text-[10px] font-black uppercase tracking-widest leading-none text-left">
-                      <th className="p-5 md:p-8 leading-none text-left">AD SOYAD / BÖLÜM</th>
-                      <th className="p-5 md:p-8 leading-none text-left">PUAN / İLERLEME</th>
-                      <th className="p-5 md:p-8 leading-none text-left">TOPLAM SÜRE</th>
-                      <th className="p-5 md:p-8 text-center leading-none text-center">İŞLEM</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 leading-none text-left">
-                    {filteredAnalytics.map((student) => (
-                      <tr key={student.id} className="hover:bg-gray-50/50 transition-all group leading-none text-left">
-                        <td className="p-5 md:p-8 text-left leading-none text-left text-left text-left">
-                          <div className="flex items-center gap-3 text-left leading-none">
-                            <div className="w-10 h-10 bg-secondary text-white rounded-full flex items-center justify-center font-bold text-xs shadow-md shrink-0 ring-4 ring-gray-50 leading-none text-center text-left">{student.first_name[0]}{student.last_name[0]}</div>
-                            <div className="min-w-0 flex-1 text-left leading-tight text-left text-left text-left"><p className="font-black text-black text-sm truncate uppercase leading-none text-left">{student.first_name} {student.last_name}</p><p className="text-[9px] text-[#ce1212] font-black mt-1 uppercase leading-none text-left">{getDeptName(student.department)}</p></div>
-                          </div>
-                        </td>
-                        <td className="p-5 md:p-8 text-left leading-none ">
-                          <div className="flex items-center gap-4 text-left">
-                             <div className="bg-amber-100 text-amber-700 px-3 py-1 rounded-lg font-black text-[10px] border border-amber-200 shrink-0 shadow-sm leading-none text-left">{student.total_points} Puan</div>
-                             <div className="space-y-1.5 w-32 leading-none text-left text-left text-left">
-                               <div className="flex justify-between items-center leading-none text-left"><span className="text-[10px] font-bold text-secondary text-left leading-none">%{student.overall_progress}</span></div>
-                               <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden border leading-none shadow-inner text-left"><div className="bg-[#ce1212] h-full transition-all duration-1000 leading-none text-left" style={{ width: `${student.overall_progress}%` }} /></div>
-                             </div>
-                          </div>
-                        </td>
-                        <td className="p-5 md:p-8 text-left leading-none"><div className="flex items-center gap-2 text-gray-700 font-black text-xs md:text-sm text-left leading-none"><Clock size={16} className="text-amber-500 shrink-0 text-left" /> {formatDuration(student.total_time_spent)}</div></td>
-                        <td className="p-5 md:p-8 text-center leading-none"><button onClick={() => setSelectedStudent(student)} className="inline-flex items-center gap-2 text-[9px] font-black uppercase bg-secondary text-white px-5 py-2.5 rounded-xl hover:bg-black transition-all active:scale-95 leading-none shadow-md text-left text-center"><Search size={14} className="text-left" />KARNE GÖR</button></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            </td>
+            <td className="p-5 md:p-8">
+              <div className="flex items-center gap-4">
+                <div className="bg-amber-100 text-amber-700 px-3 py-1 rounded-lg font-black text-[10px] border border-amber-200 shrink-0 shadow-sm">
+                  {student.total_points} Puan
+                </div>
+                <div className="space-y-1.5 w-32">
+                  <div className="flex justify-between items-center leading-none">
+                    {/* EN SON YÜZDELİK VE TUR BİLGİSİ */}
+                    <span className="text-[10px] font-bold text-secondary">
+                      %{student.overall_progress}
+                    </span>
+                    {/* Eğer öğrenci herhangi bir haftada 2. tura geçtiyse bir uyarı ikonu eklenebilir */}
+                    <span className="text-[8px] font-black text-blue-500 uppercase tracking-tighter">GÜNCEL</span>
+                  </div>
+                  <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden border shadow-inner">
+                    <div 
+                      className={`h-full transition-all duration-1000 ${student.overall_progress === 100 ? 'bg-green-500' : 'bg-[#ce1212]'}`} 
+                      style={{ width: `${student.overall_progress}%` }} 
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
+            </td>
+            <td className="p-5 md:p-8">
+              <div className="flex items-center gap-2 text-gray-700 font-black text-xs md:text-sm">
+                <Clock size={16} className="text-amber-500 shrink-0" /> 
+                {formatDuration(student.total_time_spent)}
+              </div>
+            </td>
+            <td className="p-5 md:p-8 text-center">
+              <button 
+                onClick={() => setSelectedStudent(student)} 
+                className="inline-flex items-center gap-2 text-[9px] font-black uppercase bg-secondary text-white px-5 py-2.5 rounded-xl hover:bg-black transition-all active:scale-95 shadow-md"
+              >
+                <Search size={14} /> HAFTALIK KARNE
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</div>
           </div>
         )}
       </main>

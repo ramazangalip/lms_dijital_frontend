@@ -22,10 +22,22 @@ interface Material {
   quiz?: Quiz; 
 }
 interface WeeklyContent {
-  id: number; week_number: number; title: string; description: string;
-  intro_title?: string; intro_video_url?: string; release_date?: string; 
-  is_locked: boolean; lock_reason?: string; is_intro_watched: boolean;
-  materials: Material[]; flashcards: FlashcardData[]; progress?: number; is_completed?: boolean;
+  id: number; 
+  week_number: number; 
+  title: string; 
+  description: string;
+  intro_title?: string; 
+  intro_video_url?: string; 
+  release_date?: string; 
+  is_locked: boolean; 
+  lock_reason?: string; 
+  is_intro_watched: boolean;
+  materials: Material[]; 
+  flashcards: FlashcardData[]; 
+  progress?: number; 
+  is_completed?: boolean;
+  // YENİ EKLENEN ALAN:
+  current_attempt_round: number; 
 }
 interface ProgressData { weekly_content: number | string; completion_percentage: number; is_completed: boolean; }
 
@@ -211,13 +223,19 @@ export default function StudentDashboard() {
   const handleQuizSubmit = async () => {
     if (!activeMaterial?.quiz) return;
     const totalQs = activeMaterial.quiz.questions.length;
-    if (Object.keys(selectedAnswers).length < totalQs) { alert("Lütfen tüm soruları cevaplayın."); return; }
+    if (Object.keys(selectedAnswers).length < totalQs) { 
+      alert("Lütfen tüm soruları cevaplayın."); 
+      return; 
+    }
     setQuizSubmitting(true);
     try {
-      const answers = Object.entries(selectedAnswers).map(([qId, oId]) => ({ question_id: String(qId), option_id: String(oId) }));
+      const answers = Object.entries(selectedAnswers).map(([qId, oId]) => ({ 
+        question_id: String(qId), 
+        option_id: String(oId) 
+      }));
+      
       const res = await api.post(`/contents/quiz/${String(activeMaterial.quiz.id)}/submit/`, { answers });
       
-      // Backend'den gelen yeni skor bilgilerini set et
       setQuizResult({ 
         score: res.data.score, 
         correct: res.data.correct, 
@@ -225,17 +243,25 @@ export default function StudentDashboard() {
       });
       setCurrentAttemptId(String(res.data.attempt_id));
 
+      // TUR KONTROLÜ VE UYARI
+      if (res.data.next_round_activated) {
+        alert("Yanlış cevaplarınız olduğu için Yapay Zeka analizinden sonra 2. Tur başlayacaktır. Materyalleri tekrar gözden geçirebilirsiniz.");
+      }
+
       const earned = res.data.points_earned || 0;
       if (earned > 0) {
-          setPointsEarned({ show: true, amount: earned });
-          setUserTotalPoints(prev => prev + earned);
-          setTimeout(() => setPointsEarned({ show: false, amount: 0 }), 5000);
+        setPointsEarned({ show: true, amount: earned });
+        setUserTotalPoints(prev => prev + earned);
+        setTimeout(() => setPointsEarned({ show: false, amount: 0 }), 5000);
       }
-      setCompletedMaterials(prev => [...prev, String(activeMaterial.id)]);
-      await fetchContents(true);
-    } catch (err) { alert("Test gönderim hatası."); } finally { setQuizSubmitting(false); }
+      
+      await fetchContents(true); // Tüm verileri ve yeni round bilgisini çek
+    } catch (err) { 
+      alert("Test gönderim hatası."); 
+    } finally { 
+      setQuizSubmitting(false); 
+    }
   };
-
   const handleFetchAIAnalysis = async () => {
     if (!currentAttemptId) return;
     setIsAnalysisLoading(true); setIsAnalysisModalOpen(true);
@@ -420,7 +446,13 @@ export default function StudentDashboard() {
               <div className="max-w-screen-xl mx-auto p-6 md:p-10">
                 <div className="mb-10 border-b pb-8 border-gray-100 flex flex-col md:flex-row md:items-end justify-between gap-6 leading-tight">
                   <div className="flex-1 space-y-4 leading-tight text-left">
-                    <div className="flex items-center gap-3 text-left"><span className="bg-secondary text-white text-[8px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest leading-none">HAFTA {selectedWeek.week_number}</span></div>
+                    <div className="flex items-center gap-3 text-left">
+  <span className="bg-secondary text-white text-[8px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest leading-none">
+    HAFTA {selectedWeek.week_number}
+  </span>
+  {/* YENİ TUR GÖSTERGESİ */}
+  
+</div>
                     <h1 className="text-2xl md:text-4xl font-black text-secondary uppercase tracking-tighter leading-tight text-left">{selectedWeek.title}</h1>
                     <div className="flex items-center gap-3 text-left"><div className="flex-1 max-w-xs bg-gray-100 h-1.5 rounded-full overflow-hidden border shadow-inner text-left"><div className={`h-full transition-all duration-1000 ${selectedWeek.progress === 100 ? 'bg-green-500 text-left' : 'bg-primary text-left'}`} style={{ width: `${selectedWeek.progress || 0}%` }} /></div><span className="text-[10px] font-black text-gray-400 uppercase text-left">%{selectedWeek.progress || 0} TAMAMLANDI</span></div>
                   </div>
@@ -545,7 +577,30 @@ export default function StudentDashboard() {
               {isAnalysisLoading ? (<div className="flex flex-col items-center justify-center py-20 gap-8 leading-none  text-center"><div className="w-20 h-20 border-4 border-primary border-t-transparent rounded-full animate-spin leading-none  text-left"></div><p className="text-secondary font-black text-xl uppercase tracking-widest animate-pulse leading-none text-left  ">Veriler Analiz Ediliyor...</p></div>
               ) : (<div className="bg-white border-2 border-primary/10 p-8 rounded-[2.5rem] shadow-sm leading-relaxed animate-in slide-in-from-bottom-4   text-left"><div className="flex items-center gap-3 mb-6 text-primary leading-none text-left"><Sparkles size={20} className="text-left " /><span className="font-black text-xs uppercase tracking-widest leading-none text-left">Akıllı Geri Bildirim</span></div><p className="text-secondary font-medium leading-loose text-base italic leading-relaxed whitespace-pre-line text-left text-left text-left text-left text-left text-left text-left text-left text-left text-left">&quot;{aiAnalysisFeedback}&quot;</p></div>)}
             </div>
-            <div className="p-8 bg-white border-t flex justify-center leading-none  text-left"><button onClick={() => setIsAnalysisModalOpen(false)} className="w-full md:w-auto bg-secondary text-white px-16 py-5 rounded-[2rem] font-black text-xs uppercase shadow-xl active:scale-95 leading-none  text-left">Kapat Ve Devam Et</button></div>
+            <div className="p-8 bg-white border-t flex justify-center leading-none text-left">
+<button 
+  onClick={async () => {
+    // 1. Modalı kapat
+    setIsAnalysisModalOpen(false);
+
+    // 2. KRİTİK: Sınav sonuçlarını ve cevapları arayüzden temizle
+    setQuizResult(null); 
+    setSelectedAnswers({});
+    setCurrentAttemptId(null);
+    
+    // 3. Backend'den güncel verileri (Round 2 bilgisi ve yeni tik listesini) çek
+    await fetchContents(true); 
+    
+    // 4. Bilgilendirme
+    if (selectedWeek && selectedWeek.current_attempt_round === 1 && quizResult && quizResult.wrong > 0) {
+        alert("Hatalarınız analiz edildi. Şimdi 2. Tur kapsamında materyalleri tekrar inceleyebilir ve testi tekrar çözebilirsiniz.");
+    }
+  }} 
+  className="w-full md:w-auto bg-secondary text-white px-16 py-5 rounded-[2rem] font-black text-xs uppercase shadow-xl active:scale-95 leading-none text-left"
+>
+  Kapat Ve Devam Et
+</button>
+</div>
           </div>
         </div>
       )}
