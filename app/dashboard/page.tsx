@@ -15,7 +15,7 @@ interface Quiz { id: number; title: string; description: string; questions: Ques
 interface FlashcardData { id: number; question: string; answer: string; }
 interface Material { 
   id: number; 
-  content_type: 'video' | 'podcast' | 'form' | 'pdf'; 
+  content_type: 'video' | 'podcast' | 'form' | 'pdf' | 'assignment';
   embed_url: string; 
   title: string; 
   point_value?: number; 
