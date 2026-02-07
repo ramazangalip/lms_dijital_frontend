@@ -41,30 +41,7 @@ interface WeeklyContent {
 }
 interface ProgressData { weekly_content: number | string; completion_percentage: number; is_completed: boolean; }
 
-// --- 3D FLASHCARD BİLEŞENİ ---
-const Flashcard = ({ question, answer }: { question: string, answer: string }) => {
-  const [isFlipped, setIsFlipped] = useState(false);
-  return (
-    <div className="group w-full max-w-xl mx-auto h-64 [perspective:1000px] cursor-pointer" onClick={() => setIsFlipped(!isFlipped)}>
-      <div className={`relative w-full h-full transition-all duration-700 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
-        <div className="absolute inset-0 w-full h-full bg-white border-2 border-gray-100 rounded-3xl shadow-sm flex flex-col items-center justify-center p-8 [backface-visibility:hidden]">
-          <div className="bg-red-50 text-primary p-3 rounded-2xl mb-4 text-center">
-            <BookOpen size={24} className="mx-auto" />
-          </div>
-          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 text-center">SORU</span>
-          <p className="text-center font-bold text-secondary text-base leading-tight">{question}</p>
-          <div className="absolute bottom-4 flex items-center gap-2 text-[9px] text-primary font-bold uppercase animate-pulse">
-            <RefreshCcw size={10} /> Cevabı Gör
-          </div>
-        </div>
-        <div className="absolute inset-0 w-full h-full bg-primary text-white rounded-3xl shadow-xl flex flex-col items-center justify-center p-8 [backface-visibility:hidden] [transform:rotateY(180deg)] text-center">
-          <span className="text-[10px] font-black text-red-200 uppercase tracking-widest mb-4">CEVAP</span>
-          <p className="text-center font-medium text-base leading-relaxed">{answer}</p>
-        </div>
-      </div>
-    </div>
-  );
-};
+
 
 export default function StudentDashboard() {
   const [contents, setContents] = useState<WeeklyContent[]>([]);
@@ -73,7 +50,6 @@ export default function StudentDashboard() {
   const [isIntroView, setIsIntroView] = useState(true);
   const [loading, setLoading] = useState(true);
   const [completedMaterials, setCompletedMaterials] = useState<string[]>([]);
-  const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [pointsEarned, setPointsEarned] = useState<{show: boolean, amount: number}>({show: false, amount: 0});
   const [userTotalPoints, setUserTotalPoints] = useState(0);
@@ -91,7 +67,7 @@ export default function StudentDashboard() {
   const [isTyping, setIsTyping] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const materialWatchThreshold = 420; 
+  const materialWatchThreshold = 300; 
   const introWatchThreshold = 240;    
   const [watchTime, setWatchTime] = useState(0);
   const [introWatchTime, setIntroWatchTime] = useState(0);
@@ -104,16 +80,22 @@ export default function StudentDashboard() {
 
   useEffect(() => { activeMaterialRef.current = activeMaterial; }, [activeMaterial]);
 
-  const getSortedMaterials = (mats: Material[]) => {
-    const orderMap = { video: 1, podcast: 2, form: 3, pdf: 4 };
-    return [...mats].sort((a, b) => (orderMap[a.content_type] || 5) - (orderMap[b.content_type] || 5));
-  };
+const getSortedMaterials = (mats: Material[]) => {
+  // Sıralama: pdf (1), video (2), podcast (3), form (4)
+  const orderMap = { pdf: 1, video: 2, podcast: 3, form: 4 ,assignment: 5};
+  return [...mats].sort((a, b) => (orderMap[a.content_type] || 6) - (orderMap[b.content_type] || 6));
+};
 
   const isQuizLocked = () => {
-    if (!selectedWeek || !activeMaterial || activeMaterial.content_type !== 'form') return false;
-    const mediaToFinish = selectedWeek.materials.filter(m => m.content_type === 'video' || m.content_type === 'podcast');
-    return mediaToFinish.some(m => !completedMaterials.includes(String(m.id)));
-  };
+  // Eğer hafta seçili değilse kilitlemeye gerek yok
+  if (!selectedWeek) return false;
+
+  // Hafta içindeki sınav (form) dışındaki tüm materyalleri (video, pdf, assignment vb.) bul
+  const requiredMaterials = selectedWeek.materials.filter(m => m.content_type !== 'form');
+  
+  // Eğer bu zorunlu materyallerden herhangi biri tamamlanmamışsa kilitlidir (true döner)
+  return requiredMaterials.some(m => !completedMaterials.includes(String(m.id)));
+};
 
   const getIntroData = () => {
     const weekOne = contents.find(c => c.week_number === 1);
@@ -140,9 +122,24 @@ export default function StudentDashboard() {
       const rawContents = contentRes.data;
       const mergedData = rawContents.map((week: WeeklyContent) => {
         const foundProgress = progressRes.data.find((p: ProgressData) => String(p.weekly_content) === String(week.id));
-        return { ...week, progress: foundProgress ? Math.round(foundProgress.completion_percentage) : 0, is_completed: foundProgress ? foundProgress.is_completed : false };
+        return { 
+          ...week, 
+          progress: foundProgress ? Math.round(foundProgress.completion_percentage) : 0, 
+          is_completed: foundProgress ? foundProgress.is_completed : false 
+        };
       });
       setContents(mergedData);
+
+      // --- ANLIK GÜNCELLEME SİHRİ BURADA ---
+      // Eğer bir hafta seçiliyse, o haftanın güncel verilerini (progress, round vb.) 
+      // yeni gelen mergedData içinden bulup selectedWeek state'ini tazeliyoruz.
+      if (selectedWeek) {
+        const freshWeekData = mergedData.find((w: WeeklyContent) => w.id === selectedWeek.id);
+        if (freshWeekData) {
+          setSelectedWeek(freshWeekData);
+        }
+      }
+      // -------------------------------------
 
       // Sayfa ilk açıldığında veya hafta değiştiğinde testi kontrol et
       const currentWeek = selectedWeek || mergedData.sort((a: any, b: any) => a.week_number - b.week_number)[0];
@@ -166,7 +163,11 @@ export default function StudentDashboard() {
         setIsIntroView(true); 
         isInitialMount.current = false;
       }
-    } catch (err) { console.error("Veri çekme hatası."); } finally { setLoading(false); }
+    } catch (err) { 
+      console.error("Veri çekme hatası."); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   useEffect(() => { fetchContents(); }, []);
@@ -194,25 +195,28 @@ export default function StudentDashboard() {
       trackingInterval.current = null;
     }
     if (selectedWeek) {
-      const sendPing = async () => {
-        try {
-          await api.post('/contents/track-activity/', {
-            weekly_content_id: selectedWeek.id,
-            seconds: 30 
-          });
-        } catch (err) { 
-          console.error("Ping hatası"); 
-        }
-      };
+   const sendPing = async () => {
+  try {
+    await api.post('/contents/track-activity/', {
+      weekly_content_id: selectedWeek.id,
+      // Hangi materyal açıksa onun ID'sini gönderiyoruz
+      material_id: activeMaterial?.id || null, 
+      seconds: 30 
+    });
+  } catch (err) { 
+    console.error("Ping hatası"); 
+  }
+};
       trackingInterval.current = setInterval(sendPing, 30000);
     }
-    return () => { 
-      if (trackingInterval.current) {
-        clearInterval(trackingInterval.current);
-        trackingInterval.current = null;
-      }
-    };
-  }, [selectedWeek?.id]);
+   return () => { 
+    if (trackingInterval.current) {
+      clearInterval(trackingInterval.current);
+      trackingInterval.current = null;
+    }
+  };
+  // ARTIK materyal değişince de (activeMaterial?.id) ping mekanizması tazelemeye girecek
+}, [selectedWeek?.id, activeMaterial?.id]);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -429,127 +433,248 @@ export default function StudentDashboard() {
       </aside>
 
       <main className="flex-1 overflow-y-auto bg-white custom-scrollbar pt-14 lg:pt-0">
-        {selectedWeek ? (
-          <div className="animate-in fade-in duration-500">
-            {isIntroView ? (
-              <div className="max-w-3xl mx-auto p-6 md:p-14 space-y-10 text-center">
-                <div className="text-center space-y-3">
-                  <div className="bg-primary/10 text-primary w-14 h-14 rounded-2xl flex items-center justify-center mx-auto border border-primary/20 animate-pulse text-left"><Zap size={28} /></div>
-                  <h2 className="text-2xl md:text-4xl font-black text-secondary uppercase tracking-tighter leading-none">{introStatus.title}</h2>
-                  <div className="bg-gray-50 px-4 py-2 rounded-xl border flex items-center gap-3 mx-auto w-fit shadow-sm"><ShieldCheck size={16} className={introStatus.isWatched ? "text-green-500" : "text-primary"} /><span className="text-[10px] font-black uppercase tracking-widest text-secondary">{introStatus.isWatched ? "TANITIM TAMAMLANDI, HAFTALAR ERİŞİME AÇILDI." : "HAFTALARIN AÇILMASI İÇİN VİDEOYU İZLEMELİSİNİZ."}</span></div>
-                </div>
-                <div className="relative aspect-video rounded-3xl overflow-hidden shadow-2xl border-4 border-gray-50 ring-1 ring-gray-200 bg-secondary">
-                  {introStatus.url ? <iframe src={introStatus.url} className="w-full h-full text-center" allowFullScreen></iframe> : <div className="w-full h-full flex flex-col items-center justify-center text-gray-500 gap-4 text-center"><Lock size={40} className="opacity-20" /><p className="font-black italic uppercase tracking-widest text-[10px]">İçerik Yok</p></div>}
-                </div>
-              </div>
-            ) : (
-              <div className="max-w-screen-xl mx-auto p-6 md:p-10">
-                <div className="mb-10 border-b pb-8 border-gray-100 flex flex-col md:flex-row md:items-end justify-between gap-6 leading-tight">
-                  <div className="flex-1 space-y-4 leading-tight text-left">
-                    <div className="flex items-center gap-3 text-left">
-  <span className="bg-secondary text-white text-[8px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest leading-none">
-    HAFTA {selectedWeek.week_number}
-  </span>
-  {/* YENİ TUR GÖSTERGESİ */}
-  
+       {selectedWeek ? (
+  <div className="animate-in fade-in duration-500">
+    {isIntroView ? (
+      /* --- TANITIM VİDEOSU GÖRÜNÜMÜ --- */
+      <div className="max-w-3xl mx-auto p-6 md:p-14 space-y-10 text-center">
+        <div className="text-center space-y-3">
+          <div className="bg-primary/10 text-primary w-14 h-14 rounded-2xl flex items-center justify-center mx-auto border border-primary/20 animate-pulse text-left"><Zap size={28} /></div>
+          <h2 className="text-2xl md:text-4xl font-black text-secondary uppercase tracking-tighter leading-none">{introStatus.title}</h2>
+          <div className="bg-gray-50 px-4 py-2 rounded-xl border flex items-center gap-3 mx-auto w-fit shadow-sm"><ShieldCheck size={16} className={introStatus.isWatched ? "text-green-500" : "text-primary"} /><span className="text-[10px] font-black uppercase tracking-widest text-secondary">{introStatus.isWatched ? "TANITIM TAMAMLANDI, HAFTALAR ERİŞİME AÇILDI." : "HAFTALARIN AÇILMASI İÇİN VİDEOYU İZLEMELİSİNİZ."}</span></div>
+        </div>
+        <div className="relative aspect-video rounded-3xl overflow-hidden shadow-2xl border-4 border-gray-50 ring-1 ring-gray-200 bg-secondary">
+          {introStatus.url ? <iframe src={introStatus.url} className="w-full h-full text-center" allowFullScreen></iframe> : <div className="w-full h-full flex flex-col items-center justify-center text-gray-500 gap-4 text-center"><Lock size={40} className="opacity-20" /><p className="font-black italic uppercase tracking-widest text-[10px]">İçerik Yok</p></div>}
+        </div>
+      </div>
+    ) : (
+      /* --- HAFTA İÇERİĞİ GÖRÜNÜMÜ --- */
+      <div className="max-w-screen-xl mx-auto p-6 md:p-10">
+        <div className="mb-10 border-b pb-8 border-gray-100 flex flex-col lg:flex-row lg:items-end justify-between gap-6 overflow-hidden">
+  {/* SOL TARAF: HAFTA BAŞLIĞI VE İLERLEME */}
+  <div className="flex-1 min-w-0 space-y-4 leading-tight text-left">
+    <div className="flex items-center gap-3 text-left">
+      <span className="bg-secondary text-white text-[8px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest leading-none">
+        HAFTA {selectedWeek.week_number}
+      </span>
+      {/* 2. TUR ETİKETİ: Aktif tur 2 ise gösterilir */}
+      {selectedWeek.current_attempt_round > 1 && (
+        <span className="bg-amber-100 text-amber-700 text-[8px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest leading-none border border-amber-200 animate-pulse">
+          <RefreshCcw size={8} className="inline mr-1" /> 2. TUR (GELİŞİM)
+        </span>
+      )}
+    </div>
+    <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-secondary uppercase tracking-tighter leading-tight text-left break-words line-clamp-2 max-w-full">
+      {selectedWeek.title}
+    </h1>
+    <div className="flex items-center gap-3 text-left">
+      <div className="flex-1 max-w-xs bg-gray-100 h-1.5 rounded-full overflow-hidden border shadow-inner text-left">
+        <div 
+          className={`h-full transition-all duration-1000 ${selectedWeek.progress === 100 ? 'bg-green-500' : 'bg-primary'}`} 
+          style={{ width: `${selectedWeek.progress || 0}%` }} 
+        />
+      </div>
+      <span className="text-[10px] font-black text-gray-400 uppercase text-left whitespace-nowrap">%{selectedWeek.progress || 0} TAMAMLANDI</span>
+    </div>
+  </div>
+
+  {/* SAĞ TARAF: KAYDIRILABİLİR MATERYAL SEÇİCİ */}
+  <div className="w-full lg:max-w-[60%] flex bg-gray-100 p-1.5 rounded-2xl shadow-inner border border-gray-200 overflow-x-auto no-scrollbar shrink-0 scroll-smooth touch-pan-x gap-1">
+    {getSortedMaterials(selectedWeek.materials).map((mat) => {
+      // İkon belirleme
+      let MatIcon = mat.content_type === 'video' ? Video : 
+                    mat.content_type === 'podcast' ? Headphones : 
+                    mat.content_type === 'pdf' ? Download : 
+                    mat.content_type === 'assignment' ? Sparkles : ListChecks;
+      
+      // Kilit ve Tamamlanma durumları
+      const isLocked = mat.content_type === 'form' && isQuizLocked();
+      const isDone = completedMaterials.includes(String(mat.id));
+
+      return (
+        <button 
+          key={mat.id} 
+          onClick={() => setActiveMaterial(mat)} 
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black transition-all whitespace-nowrap shrink-0 ${activeMaterial?.id === mat.id ? 'bg-white text-primary shadow-md scale-105' : 'text-gray-500'} text-left`}
+        >
+          {/* İkon Karar Mekanizması */}
+          {isDone ? (
+            <CheckCircle2 size={14} className="text-green-500 shrink-0" />
+          ) : isLocked ? (
+            <Lock size={14} className="text-amber-500 shrink-0" />
+          ) : (
+            <MatIcon size={14} className="shrink-0" />
+          )}
+          
+          <span className="ml-1 leading-none uppercase text-left">{mat.title}</span>
+        </button>
+      );
+    })}
+  </div>
 </div>
-                    <h1 className="text-2xl md:text-4xl font-black text-secondary uppercase tracking-tighter leading-tight text-left">{selectedWeek.title}</h1>
-                    <div className="flex items-center gap-3 text-left"><div className="flex-1 max-w-xs bg-gray-100 h-1.5 rounded-full overflow-hidden border shadow-inner text-left"><div className={`h-full transition-all duration-1000 ${selectedWeek.progress === 100 ? 'bg-green-500 text-left' : 'bg-primary text-left'}`} style={{ width: `${selectedWeek.progress || 0}%` }} /></div><span className="text-[10px] font-black text-gray-400 uppercase text-left">%{selectedWeek.progress || 0} TAMAMLANDI</span></div>
+
+        {activeMaterial ? (
+          <div className="space-y-12 animate-in slide-in-from-bottom-2 leading-normal text-left">
+            <section className="material-display-area text-left relative">
+              
+              {/* 1. ÖDEV (MICROSOFT FORMS) GÖRÜNÜMÜ */}
+              {activeMaterial.content_type === 'assignment' ? (
+                <div className="bg-white border-4 border-gray-50 p-12 rounded-[3rem] shadow-2xl flex flex-col items-center gap-8 text-center max-w-3xl mx-auto animate-in zoom-in-95 duration-500 relative overflow-hidden">
+                  <div className="absolute top-6 right-6 bg-amber-100 text-amber-700 px-4 py-2 rounded-2xl font-black text-[10px] shadow-sm border border-amber-200 tracking-widest uppercase">
+                    +{activeMaterial.point_value || 0} PUAN
                   </div>
-                  <div className="flex bg-gray-100 p-1.5 rounded-2xl shadow-inner border border-gray-200 overflow-x-auto no-scrollbar max-w-full shrink-0 leading-none text-left">
-                    {getSortedMaterials(selectedWeek.materials).map((mat) => {
-                      let MatIcon = mat.content_type === 'video' ? Video : mat.content_type === 'podcast' ? Headphones : mat.content_type === 'pdf' ? Download : ListChecks;
-                      const isTestLocked = mat.content_type === 'form' && selectedWeek.materials.filter(m => m.content_type !== 'form').some(m => !completedMaterials.includes(String(m.id)));
-                      return (<button key={mat.id} onClick={() => setActiveMaterial(mat)} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black transition-all whitespace-nowrap leading-none ${activeMaterial?.id === mat.id ? 'bg-white text-primary shadow-md scale-105' : 'text-gray-500'} text-left`}>{completedMaterials.includes(String(mat.id)) ? <CheckCircle2 size={14} className="text-green-500" /> : isTestLocked ? <Lock size={14} className="text-gray-400" /> : <MatIcon size={14} />}<span className="ml-1 leading-none uppercase text-left">{mat.title}</span></button>);
-                    })}
+                  <div className="bg-amber-50 p-6 rounded-3xl text-amber-600 animate-pulse mt-4"><Sparkles size={64} /></div>
+                  <div className="space-y-3">
+                    <h3 className="text-2xl md:text-3xl font-black text-secondary uppercase tracking-tighter leading-none">HAFTALIK ÖDEV FORMU</h3>
+                    <p className="text-[11px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed max-w-md mx-auto">
+                      {selectedWeek.current_attempt_round > 1 ? "2. Tur kapsamında ödevi tekrar inceleyebilirsin." : "Ödevi tamamlayarak akademik puanını kazan!"}
+                    </p>
                   </div>
+                  <a href={activeMaterial.embed_url} target="_blank" rel="noopener noreferrer" onClick={() => handleCompleteMaterial(activeMaterial.id)} className="bg-secondary text-white px-12 py-5 rounded-2xl font-black tracking-[0.2em] flex items-center gap-3 shadow-xl hover:scale-105 active:scale-95 transition-all text-xs uppercase">
+                    ÖDEVİ AÇ VE TAMAMLA
+                  </a>
+                  <div className="flex items-center gap-2 text-[10px] text-gray-400 font-bold italic border-t pt-4 w-full justify-center"><AlertCircle size={14} className="text-amber-400" /> Linke tıkladığınızda ödeviniz tamamlanmış sayılacaktır.</div>
                 </div>
 
-                {activeMaterial ? (
-                  <div className="space-y-12 animate-in slide-in-from-bottom-2 leading-normal text-left">
-                    <section className="material-display-area text-left">
-                    {activeMaterial.content_type === 'pdf' ? (
-                      <div className="bg-white border-4 border-gray-50 p-12 rounded-[3rem] shadow-2xl flex flex-col items-center gap-8 text-center max-w-3xl mx-auto text-left">
-                        <div className="bg-primary/10 p-6 rounded-3xl text-primary animate-pulse text-center text-left"><FileText size={64} className="text-left" /></div>
-                        <div className="space-y-2 leading-tight text-center text-left">
-                            <h3 className="text-2xl font-black text-secondary uppercase tracking-tighter leading-tight text-left">{activeMaterial.title}</h3>
-                            <p className="text-xs text-gray-500 font-medium text-left text-center"> OneDrive üzerinden indirebilirsiniz.</p>
-                        </div>
-                        <a href={activeMaterial.embed_url} target="_blank" rel="noopener noreferrer" onClick={() => handleCompleteMaterial(activeMaterial.id)} className="bg-secondary text-white px-12 py-5 rounded-2xl font-black tracking-widest flex items-center gap-3 shadow-xl hover:scale-105 transition-all text-xs text-left"><Download size={18} className="text-primary text-left" /> DERS NOTUNU İNDİR (PDF)</a>
+              ) : activeMaterial.content_type === 'pdf' ? (
+                /* 2. PDF GÖRÜNÜMÜ */
+                <div className="bg-white border-4 border-gray-50 p-12 rounded-[3rem] shadow-2xl flex flex-col items-center gap-8 text-center max-w-3xl mx-auto">
+                  <div className="bg-primary/10 p-6 rounded-3xl text-primary animate-pulse text-center text-left"><FileText size={64} className="text-left" /></div>
+                  <div className="space-y-2 leading-tight text-center text-left">
+                    <h3 className="text-2xl font-black text-secondary uppercase tracking-tighter leading-tight text-left">{activeMaterial.title}</h3>
+                    <p className="text-xs text-gray-500 font-medium text-left text-center">OneDrive üzerinden dökümana ulaşabilirsiniz.</p>
+                  </div>
+                  <a href={activeMaterial.embed_url} target="_blank" rel="noopener noreferrer" onClick={() => handleCompleteMaterial(activeMaterial.id)} className="bg-secondary text-white px-12 py-5 rounded-2xl font-black tracking-widest flex items-center gap-3 shadow-xl hover:scale-105 transition-all text-xs text-left uppercase"><Download size={18} className="text-primary text-left" /> DERS NOTUNU AÇ / İNDİR</a>
+                </div>
+
+              ) : activeMaterial.content_type !== 'form' ? (
+                /* 3. VİDEO VE PODCAST */
+                <div className="relative aspect-video shadow-2xl rounded-3xl overflow-hidden bg-black border-4 border-gray-50 ring-1 ring-gray-200 max-w-4xl mx-auto text-left"><iframe src={activeMaterial.embed_url} className="absolute inset-0 w-full h-full text-left" allowFullScreen></iframe></div>
+              ) : (
+                /* 4. SINAV (QUIZ) GÖRÜNÜMÜ - 2. TUR UYUMLU */
+                <div className="bg-white border border-gray-100 rounded-3xl shadow-xl overflow-hidden w-full max-w-4xl mx-auto flex flex-col animate-in fade-in">
+                  <div className="bg-secondary p-5 md:p-6 flex items-center justify-between text-white border-b-2 border-primary shrink-0">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-primary p-2.5 rounded-xl shadow-lg shrink-0"><ListChecks size={20} /></div>
+                      <div className="text-left">
+                        <h2 className="text-white font-black text-base md:text-lg uppercase tracking-tighter mb-1">{activeMaterial.quiz?.title || activeMaterial.title}</h2>
+                        <p className="text-gray-400 text-[8px] font-bold uppercase tracking-widest">{selectedWeek.current_attempt_round}. Tur Değerlendirmesi</p>
                       </div>
-                    ) : activeMaterial.content_type !== 'form' ? (
-                      <div className="relative aspect-video shadow-2xl rounded-3xl overflow-hidden bg-black border-4 border-gray-50 ring-1 ring-gray-200 max-w-4xl mx-auto text-left"><iframe src={activeMaterial.embed_url} className="absolute inset-0 w-full h-full text-left" allowFullScreen></iframe></div>
+                    </div>
+                  </div>
+
+                  <div className="p-5 md:p-8 space-y-8 bg-gray-50/20">
+                    {isQuizLocked() ? (
+                      /* KİLİT EKRANI */
+                      <div className="text-center py-12 px-6 flex flex-col items-center gap-6 animate-in zoom-in-95 leading-none text-left text-center">
+                        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center border-2 border-red-100 shadow-lg text-center"><Lock size={32} /></div>
+                        <div className="space-y-2 text-left text-center"><h3 className="text-lg font-black text-secondary uppercase tracking-tight text-center">Sınav Kilitli</h3><p className="text-xs text-gray-500 font-medium max-w-sm mx-auto leading-relaxed text-left text-center">Lütfen önce bu haftanın materyallerini (Video, PDF vb.) bitirerek %100 ilerleme sağlayın.</p></div>
+                        <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
+                          {getSortedMaterials(selectedWeek.materials).filter(m => m.content_type !== 'form').map(m => {
+                            let Icon = m.content_type === 'video' ? Video : m.content_type === 'podcast' ? Headphones : m.content_type === 'assignment' ? Sparkles : Download;
+                            const isDone = completedMaterials.includes(String(m.id));
+                            return (<button key={m.id} onClick={() => setActiveMaterial(m)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black border transition-all ${isDone ? 'bg-green-50 border-green-200 text-green-600' : 'bg-white border-gray-200 text-gray-400'}`}>{isDone ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />} {m.title.toUpperCase()}</button>);
+                          })}
+                        </div>
+                      </div>
+                    ) : (completedMaterials.includes(String(activeMaterial.id)) || quizResult) ? (
+                      /* SINAV SONUCU */
+                      <div className="text-center py-4 space-y-4 animate-in zoom-in-95 leading-none text-left text-center">
+  <div className="w-14 h-14 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto border-2 border-green-100 shadow-xl animate-bounce leading-none text-left text-center">
+    <Award size={28} />
+  </div>
+  
+  {quizResult && (
+    <div className="space-y-4 text-center leading-none text-left text-center">
+      <h3 className="text-xl md:text-2xl font-black text-secondary uppercase tracking-tighter text-primary text-center">Tebrikler!</h3>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-2xl mx-auto text-center">
+        {/* SKOR KUTUSU */}
+        <div className="bg-gray-50 p-4 rounded-xl border-2 border-gray-100 text-center shadow-sm">
+          <p className="text-[8px] font-black text-gray-400 uppercase mb-2">SKOR</p>
+          <p className="text-xl font-black text-secondary text-center">%{quizResult.score}</p>
+        </div>
+        
+        {/* DOĞRU KUTUSU */}
+        <div className="bg-green-50 p-4 rounded-xl border-2 border-green-100 shadow-sm text-center">
+          <p className="text-[8px] font-black text-green-600 uppercase mb-2 text-center">Doğru</p>
+          <p className="text-xl font-black text-green-600 text-center">{quizResult.correct}</p>
+        </div>
+        
+        {/* YANLIŞ KUTUSU */}
+        <div className="bg-red-50 p-4 rounded-xl border-2 border-red-100 shadow-sm text-center">
+          <p className="text-[8px] font-black text-red-600 uppercase mb-2 text-center">Yanlış</p>
+          <p className="text-xl font-black text-red-600 text-center">{quizResult.wrong}</p>
+        </div>
+      </div>
+    </div>
+  )}
+
+  <button 
+    onClick={handleFetchAIAnalysis} 
+    className="mx-auto flex items-center gap-2 bg-secondary text-white px-10 py-5 rounded-2xl font-black text-[10px] shadow-xl uppercase hover:scale-105 active:scale-95 transition-all mt-4 text-left text-center"
+  >
+    <Sparkles size={16} className="text-primary animate-pulse text-left" /> ANALİZİ GÖR VE DEVAM ET
+  </button>
+</div>
                     ) : (
-                      <div className="bg-white border border-gray-100 rounded-3xl shadow-xl overflow-hidden max-w-4xl mx-auto text-left">
-                        <div className="bg-secondary p-5 md:p-6 flex items-center justify-between text-white border-b-2 border-primary shrink-0 leading-none text-left text-left">
-                          <div className="flex items-center gap-4 leading-none text-left">
-                            <div className="bg-primary p-2.5 rounded-xl shadow-lg leading-none text-center text-left"><ListChecks size={20} className="text-left" /></div>
-                            <div className="text-left leading-none text-left text-left"><h2 className="text-white font-black text-base md:text-lg uppercase tracking-tighter mb-1 text-left">{activeMaterial.quiz?.title || activeMaterial.title}</h2><p className="text-gray-400 text-[8px] font-bold uppercase tracking-widest text-left">Değerlendirme Sınavı</p></div>
+                      /* SINAV SORULARI */
+                      <div className="space-y-10">
+                        {activeMaterial.quiz?.questions.map((q, qIdx) => (
+                          <div key={q.id} className="space-y-5 text-left border-b border-gray-100 pb-8 last:border-0 last:pb-0">
+                            <h3 className="text-sm md:text-base font-black text-secondary flex gap-3 leading-tight"><span className="text-primary shrink-0">0{qIdx + 1}.</span> <span className="break-words">{q.question_text}</span></h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:pl-8">
+                              {q.options.map((opt) => (<button key={opt.id} onClick={() => setSelectedAnswers(prev => ({...prev, [q.id]: opt.id}))} className={`p-4 rounded-2xl text-left text-[11px] font-bold border-2 transition-all flex items-center justify-between group min-h-[56px] ${selectedAnswers[q.id] === opt.id ? 'bg-primary border-primary text-white shadow-lg' : 'bg-white border-gray-100 text-gray-500 hover:border-red-100'}`}><span className="pr-2">{opt.option_text}</span>{selectedAnswers[q.id] === opt.id && <ArrowRight size={14} className="shrink-0" />}</button>))}
+                            </div>
                           </div>
-                        </div>
-                        <div className="p-5 md:p-8 space-y-8 bg-gray-50/20 leading-normal text-left text-left">
-                          {isQuizLocked() ? (
-                            <div className="text-center py-12 px-6 flex flex-col items-center gap-6 animate-in zoom-in-95 leading-none text-left text-center">
-                              <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center border-2 border-red-100 shadow-lg  text-center"><Lock size={32} /></div>
-                              <div className="space-y-2 text-left text-center"><h3 className="text-lg font-black text-secondary uppercase tracking-tight  text-center">Sınav Kilitli</h3><p className="text-xs text-gray-500 font-medium max-w-sm mx-auto leading-relaxed text-left text-center">Lütfen önce bu haftanın videolarını bitiriniz.</p></div>
-                              <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
-                                {getSortedMaterials(selectedWeek.materials).filter(m => m.content_type !== 'form').map(m => {
-                                  const Icon = m.content_type === 'video' ? Video : m.content_type === 'podcast' ? Headphones : Download;
-                                  const isDone = completedMaterials.includes(String(m.id));
-                                  return (<button key={m.id} onClick={() => setActiveMaterial(m)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black border transition-all ${isDone ? 'bg-green-50 border-green-200 text-green-600' : 'bg-white border-gray-200 text-gray-400'}`}>{isDone ? <CheckCircle2 size={12} /> : <Icon size={12} />}{m.title.toUpperCase()}</button>);
-                                })}
-                              </div>
-                            </div>
-                          ) : (completedMaterials.includes(String(activeMaterial.id)) || quizResult) ? (
-                            <div className="text-center py-4 space-y-4 animate-in zoom-in-95 leading-none text-left text-center">
-                              <div className="w-14 h-14 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto border-2 border-green-100 shadow-xl animate-bounce leading-none text-left text-center text-center"><Award size={28} /></div>
-                              {quizResult && (<div className="space-y-4 text-center leading-none text-left text-center text-center"><h3 className="text-xl md:text-2xl font-black text-secondary uppercase tracking-tighter text-primary text-center">Tebrikler!</h3><div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-lg mx-auto text-center"><div className="bg-gray-50 p-4 rounded-xl border-2 border-gray-100 text-center shadow-sm "><p className="text-[8px] font-black text-gray-400 uppercase mb-2">SKOR</p><p className="text-xl font-black text-secondary text-center">%{quizResult.score}</p></div><div className="bg-green-50 p-4 rounded-xl border-2 border-green-100  shadow-sm  text-center"><p className="text-[8px] font-black text-green-600 uppercase mb-2 text-center">Doğru</p><p className="text-xl font-black text-green-600  text-center">{quizResult.correct}</p></div><div className="bg-red-50 p-4 rounded-xl border-2 border-red-100  shadow-sm  text-center"><p className="text-[8px] font-black text-red-600 uppercase mb-2  text-center">Yanlış</p><p className="text-xl font-black text-red-600 text-center">{quizResult.wrong}</p></div></div></div>)}
-                              <button onClick={handleFetchAIAnalysis} className="mx-auto flex items-center gap-2 bg-secondary text-white px-10 py-5 rounded-2xl font-black text-[10px] shadow-xl uppercase hover:scale-105 active:scale-95 transition-all mt-4 text-left text-center text-center text-center"><Sparkles size={16} className="text-primary animate-pulse text-left" /> ANALİZİ GÖR</button>
-                            </div>
-                          ) : (
-                            <>
-                              {activeMaterial.quiz?.questions.map((q, qIdx) => (
-                                <div key={q.id} className="space-y-4 text-left border-b border-gray-100 pb-6 last:border-0 leading-normal text-left text-left">
-                                  <h3 className="text-sm md:text-base font-black text-secondary flex gap-3 leading-tight text-left text-left"><span className="text-primary text-left">0{qIdx + 1}.</span> {q.question_text}</h3>
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:pl-8 text-left text-left text-left">
-                                    {q.options.map((opt) => (<button key={opt.id} onClick={() => setSelectedAnswers(prev => ({...prev, [q.id]: opt.id}))} className={`p-3.5 rounded-xl text-left text-[11px] font-bold border-2 transition-all flex items-center justify-between group leading-tight ${selectedAnswers[q.id] === opt.id ? 'bg-primary border-primary text-white shadow-lg' : 'bg-white border-gray-100 text-gray-500 hover:border-red-100 text-left'}`}>{opt.option_text}{selectedAnswers[q.id] === opt.id && <ArrowRight size={12} className="text-left" />}</button>))}
-                                  </div>
-                                </div>
-                              ))}
-                              <button onClick={handleQuizSubmit} disabled={quizSubmitting} className="w-full bg-secondary text-white py-4 rounded-xl font-black tracking-[0.2em] shadow-xl flex items-center justify-center gap-3 active:scale-95 disabled:bg-gray-200 uppercase mt-6 text-[10px] leading-none text-left text-center">TAMAMLA</button>
-                            </>
-                          )}
-                        </div>
+                        ))}
+                        <button onClick={handleQuizSubmit} disabled={quizSubmitting} className="w-full bg-secondary text-white py-5 rounded-2xl font-black tracking-[0.2em] shadow-xl flex items-center justify-center gap-3 active:scale-[0.98] disabled:bg-gray-200 uppercase mt-8 text-xs transition-all">{quizSubmitting ? "GÖNDERİLİYOR..." : "TESTİ TAMAMLA"}</button>
                       </div>
                     )}
-                    </section>
-                    <section className="flashcard-notes-grid space-y-12 leading-normal text-left text-left text-left text-left">
-                      {selectedWeek.flashcards && selectedWeek.flashcards.length > 0 && (
-                        <div className="bg-gray-50 p-8 rounded-[3rem] border border-gray-100 space-y-8 leading-normal text-left text-left">
-                            <div className="flex items-center justify-between leading-none text-left text-left">
-                              <div className="flex items-center gap-4 shrink-0 text-left text-left"><div className="bg-primary p-3 rounded-2xl text-white shadow-lg leading-none text-center text-left text-left"><BookOpen size={24} className="text-left" /></div><h3 className="font-black text-secondary uppercase text-lg tracking-tighter text-left text-left">TEKRAR KARTLARI</h3></div>
-                              <div className="flex items-center gap-3 bg-white p-1.5 rounded-full border shadow-sm shrink-0 leading-none text-left text-left text-left text-left">
-                                  <button onClick={() => setCurrentCardIndex(prev => Math.max(0, prev - 1))} className="p-2 hover:bg-gray-50 rounded-full transition-colors disabled:opacity-20 leading-none text-left text-left" disabled={currentCardIndex === 0}><ChevronLeft size={20} className="text-left" /></button>
-                                  <span className="text-[10px] font-black w-10 text-center leading-none text-left">{currentCardIndex + 1}/{selectedWeek.flashcards.length}</span>
-                                  <button onClick={() => setCurrentCardIndex(prev => Math.min(selectedWeek.flashcards.length - 1, prev + 1))} className="p-2 hover:bg-gray-50 rounded-full transition-colors disabled:opacity-20 leading-none text-left text-left" disabled={currentCardIndex === selectedWeek.flashcards.length - 1}><ChevronRight size={20} className="text-left" /></button>
-                              </div>
-                            </div>
-                            <Flashcard key={`fc-${selectedWeek.flashcards[currentCardIndex].id}`} question={selectedWeek.flashcards[currentCardIndex].question} answer={selectedWeek.flashcards[currentCardIndex].answer} />
-                        </div>
-                      )}
-                      <div className="bg-white rounded-[3rem] border-2 border-gray-50 shadow-xl overflow-hidden flex flex-col min-h-[400px] leading-normal text-left text-left text-left text-left">
-                         <div className="bg-gray-50/80 px-8 py-6 border-b border-gray-100 flex items-center gap-4 shrink-0 leading-none text-left text-left"><FileText size={24} className="text-primary leading-none text-left text-left" /><h3 className="font-black text-secondary uppercase tracking-widest text-[10px] leading-none text-left text-left">Haftalık Not Özeti</h3></div>
-                         <div className="p-8 md:p-10 text-gray-600 leading-relaxed text-base italic font-light overflow-y-auto flex-1 custom-scrollbar leading-relaxed text-left text-left text-left text-left">{selectedWeek.description || "Bulunamadı."}</div>
-                      </div>
-                    </section>
                   </div>
-                ) : <div className="bg-gray-50 rounded-[3rem] p-24 text-center border-4 border-dashed border-gray-100 text-gray-300 font-black uppercase tracking-widest italic flex flex-col items-center gap-5 leading-none text-left text-left text-center"> <Eye size={64} className="opacity-10 text-left text-left text-left text-left" /> İÇERİK SEÇİNİZ</div>}
+                </div>
+              )}
+            </section>
+
+            {/* --- HAFTALIK KAYNAKLAR VE NOT ÖZETİ --- */}
+            <section className="flashcard-notes-grid space-y-12 leading-normal text-left">
+              {selectedWeek.flashcards && selectedWeek.flashcards.length > 0 && (
+                <div className="bg-gray-50 p-6 md:p-10 rounded-[3rem] border border-gray-100 space-y-8 animate-in fade-in duration-700">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-primary p-3 rounded-2xl text-white shadow-lg shadow-red-500/20"><BookOpen size={24} /></div>
+                    <div className="text-left"><p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Çalışma Kartları</p></div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {selectedWeek.flashcards.map((card) => (
+                      <a key={card.id} href={card.answer} target="_blank" rel="noopener noreferrer" className="group bg-white p-5 rounded-2xl border-2 border-gray-100 hover:border-primary hover:shadow-xl transition-all duration-300 flex items-center justify-between">
+                        <div className="flex items-center gap-4 text-left">
+                          <div className="bg-red-50 text-primary p-3 rounded-xl group-hover:bg-primary group-hover:text-white transition-colors shadow-sm"><FileText size={20} /></div>
+                          <div className="text-left leading-tight"><p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter mb-1">Dökümanı Aç</p><p className="font-bold text-secondary text-sm group-hover:text-primary transition-colors uppercase break-words">{card.question}</p></div>
+                        </div>
+                        <ArrowRight size={18} className="text-gray-300 group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="bg-white rounded-[3rem] border-2 border-gray-50 shadow-xl overflow-hidden flex flex-col min-h-[400px] leading-normal text-left">
+                <div className="bg-gray-50/80 px-8 py-6 border-b border-gray-100 flex items-center gap-4 shrink-0 leading-none"><FileText size={24} className="text-primary" /><h3 className="font-black text-secondary uppercase tracking-widest text-[10px] leading-none">Haftalık Not Özeti</h3></div>
+                <div className="p-8 md:p-10 text-gray-600 leading-relaxed text-base italic font-light overflow-y-auto flex-1 custom-scrollbar whitespace-pre-line text-left">{selectedWeek.description || "Bu haftaya ait ders notu bulunamadı."}</div>
               </div>
-            )}
+            </section>
           </div>
         ) : (
-          <div className="h-full flex flex-col items-center justify-center text-gray-200 p-8 text-center gap-6 leading-none text-left text-left text-center text-center"><PlayCircle size={120} strokeWidth={0.5} className="animate-pulse opacity-10 text-left text-left text-left text-left" /><p className="text-xl font-black uppercase tracking-[0.5em] opacity-20 text-secondary text-center leading-none text-left text-center text-center text-center">Hafta Seçiniz</p></div>
+          <div className="bg-gray-50 rounded-[3rem] p-24 text-center border-4 border-dashed border-gray-100 text-gray-300 font-black uppercase tracking-widest italic flex flex-col items-center gap-5 leading-none text-left text-center"> <Eye size={64} className="opacity-10 text-left" /> İÇERİK SEÇİNİZ</div>
         )}
+      </div>
+    )}
+  </div>
+) : (
+  /* HAFTA SEÇİLMEDİYSE */
+  <div className="h-full flex flex-col items-center justify-center text-gray-200 p-8 text-center gap-6 leading-none text-left text-center">
+    <PlayCircle size={120} strokeWidth={0.5} className="animate-pulse opacity-10 text-left" />
+    <p className="text-xl font-black uppercase tracking-[0.5em] opacity-20 text-secondary text-center leading-none text-left text-center">Hafta Seçiniz</p>
+  </div>
+)}
       </main>
 
       {/* AI CHAT PANELİ */}
