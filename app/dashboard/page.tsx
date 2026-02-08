@@ -531,9 +531,8 @@ const getSortedMaterials = (mats: Material[]) => {
                     </p>
                   </div>
                   <a href={activeMaterial.embed_url} target="_blank" rel="noopener noreferrer" onClick={() => handleCompleteMaterial(activeMaterial.id)} className="bg-secondary text-white px-12 py-5 rounded-2xl font-black tracking-[0.2em] flex items-center gap-3 shadow-xl hover:scale-105 active:scale-95 transition-all text-xs uppercase">
-                    ÖDEVİ AÇ VE TAMAMLA
+                    ÖDEVİ AÇ 
                   </a>
-                  <div className="flex items-center gap-2 text-[10px] text-gray-400 font-bold italic border-t pt-4 w-full justify-center"><AlertCircle size={14} className="text-amber-400" /> Linke tıkladığınızda ödeviniz tamamlanmış sayılacaktır.</div>
                 </div>
 
               ) : activeMaterial.content_type === 'pdf' ? (
