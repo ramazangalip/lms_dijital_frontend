@@ -170,7 +170,8 @@ export default function TeacherDashboard() {
     { id: 'isg', name: 'İş Sağlığı Ve Güvenliği' },
     { id: 'saglikkurumlariisletmeciligi', name: 'Sağlık Kurumları İşletmeciliği' },
     { id: 'beslenmevediyetetik', name: 'Beslenme Ve Diyetetik' },
-    { id: 'hemsirelik', name: 'Hemşirelik' }
+    { id: 'hemsirelik', name: 'Hemşirelik' },
+    { id: 'webtasarimvekodlama', name: 'Web Tasarım Ve Kodlama' }
   ];
 
   const getDeptName = (id: string) => {
