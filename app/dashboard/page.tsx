@@ -454,6 +454,22 @@ const getIntroData = () => {
             );
           })}
         </nav>
+        <div className="px-4 pb-4">
+  <a 
+    href="https://lms-digital.zulipchat.com/join/thedwxooxnswuwvezceu3z3z/" 
+    target="_blank" 
+    rel="noopener noreferrer" 
+    className="w-full flex items-center gap-3 p-3.5 rounded-xl transition-all border border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white group"
+  >
+    <div className="bg-blue-500/20 p-1.5 rounded-lg shrink-0 group-hover:bg-white/20">
+      <Menu size={16}/> {/* İstersen buraya mesaj ikonu da koyabilirsin */}
+    </div>
+    <div className="text-left leading-tight">
+      <p className="text-[8px] font-black uppercase tracking-widest mb-1 opacity-70">Topluluk</p>
+      <p className="text-xs font-bold uppercase">TARTIŞMA ALANI</p>
+    </div>
+  </a>
+</div>
         <button onClick={handleLogout} className="p-5 border-t border-gray-700 flex items-center justify-center gap-2 text-gray-500 hover:text-primary transition-colors font-bold text-[10px] tracking-widest uppercase shrink-0"><LogOut size={14} /> GÜVENLİ ÇIKIŞ</button>
       </aside>
 
