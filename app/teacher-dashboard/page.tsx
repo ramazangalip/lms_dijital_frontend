@@ -34,7 +34,8 @@ import {
   GraduationCap,
   Award,
   Filter,
-  MapPin
+  MapPin,
+  Bot
 } from 'lucide-react';
 
 // --- VERİ TİPİ TANIMLAMALARI ---
@@ -160,6 +161,7 @@ export default function TeacherDashboard() {
   
   const [introTitle, setIntroTitle] = useState('Genel Tanıtım ve Oryantasyon');
   const [introVideoUrl, setIntroVideoUrl] = useState('');
+  const [introDescription, setIntroDescription] = useState('');
   
   const [materials, setMaterials] = useState<Material[]>([{ content_type: 'video', embed_url: '', title: '', point_value: 10 }]);
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
@@ -217,7 +219,7 @@ export default function TeacherDashboard() {
     try {
       const res = await api.get(`/contents/list/?week_number=${week}`);
       const data = res.data;
-      
+      setIntroDescription(data.intro_description || '');
       setTitle(data.title || '');
       setDescription(data.description || '');
       
@@ -393,6 +395,7 @@ export default function TeacherDashboard() {
         release_date: releaseDate || null, 
         intro_title: introTitle, 
         intro_video_url: introVideoUrl, 
+        intro_description: introDescription,
         materials, 
         flashcards: flashcards.map((f, index) => ({ ...f, order: index })) 
       };
@@ -587,6 +590,16 @@ export default function TeacherDashboard() {
                       <label className="flex items-center gap-2 text-[9px] font-black text-gray-400 uppercase mb-2 tracking-widest text-left leading-none"><PlayCircle size={12} className="text-left" /> Video Embed URL</label>
                       <input type="url" value={introVideoUrl} onChange={(e) => setIntroVideoUrl(e.target.value)} className="w-full p-3.5 rounded-xl border border-gray-200 text-xs font-mono outline-none focus:border-red-500 bg-white leading-none text-left" />
                     </div>
+                    <div className="md:col-span-4 text-left leading-none mt-4">
+  <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest text-left">Oryantasyon Metni (Opsiyonel)</label>
+  <textarea 
+    value={introDescription} 
+    onChange={(e) => setIntroDescription(e.target.value)} 
+    rows={4}
+    className="w-full p-4 rounded-2xl border-2 border-gray-100 bg-gray-50 text-black font-bold outline-none focus:border-red-500 transition-all text-sm shadow-inner leading-relaxed text-left" 
+    placeholder="Hoş geldiniz metni veya sistem rehberini buraya yazabilirsiniz..." 
+  />
+</div>
                   </div>
                 </div>
               )}
@@ -832,108 +845,122 @@ export default function TeacherDashboard() {
         )}
       </main>
 
-      {/* KARNE MODALI */}
-      {selectedStudent && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[1000] flex items-center justify-center p-2 md:p-4 animate-in fade-in duration-300 overflow-y-auto leading-none text-left text-left text-left">
-          <div className="bg-white rounded-[2rem] md:rounded-[3.5rem] w-full max-w-2xl max-h-[92vh] overflow-hidden shadow-2xl flex flex-col border-4 border-white my-auto text-left leading-none text-left">
-            <div className="p-6 md:p-10 border-b bg-gray-50 flex justify-between items-center shrink-0 leading-none text-left text-left">
-              <div className="flex items-center gap-4 text-left leading-none text-left">
-                <div className="bg-secondary p-3 rounded-2xl text-white shadow-xl leading-none shrink-0 text-center"><Users size={28} className="text-left" /></div>
-                <div className="text-left leading-none text-left">
-                  <h3 className="font-black text-xl md:text-2xl uppercase tracking-tighter text-secondary leading-none text-left">Akademik Performans Karnesi</h3>
-                  <p className="text-[10px] text-[#ce1212] font-black uppercase mt-3 text-left leading-none italic">{selectedStudent.first_name} {selectedStudent.last_name} | {getDeptName(selectedStudent.department)}</p>
-                </div>
-              </div>
-              <button onClick={() => setSelectedStudent(null)} className="bg-white p-3 rounded-full hover:bg-red-50 border transition-all text-gray-400 leading-none text-left text-center shadow-sm active:scale-90"><X size={24} className="text-left" /></button>
-            </div>
-            
-            <div className="p-6 bg-amber-50/50 flex justify-center gap-10 items-center border-b border-amber-100 leading-none text-left text-left">
-               <div className="text-center flex flex-col items-center text-left text-left">
-                 <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 text-left text-left">Toplam Puan</p>
-                 <p className="text-3xl font-black text-amber-600 leading-none text-left text-left">{selectedStudent.total_points}</p>
-               </div>
-               <div className="w-px h-10 bg-amber-200 text-left text-left"></div>
-               <div className="text-center flex flex-col items-center text-left text-left">
-                 <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 text-left text-left">Öğrenme Süresi</p>
-                 <p className="text-xl font-black text-blue-600 uppercase leading-none text-left text-left">{formatDuration(selectedStudent.total_time_spent)}</p>
-               </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-4 md:p-10 space-y-6 bg-white custom-scrollbar leading-normal text-left text-left text-left text-left">
-              {selectedStudent.weekly_breakdown?.map((week) => (
-                <div key={week.week_number} className="p-6 md:p-8 bg-gray-50 rounded-3xl border border-gray-100 space-y-6 text-left leading-normal text-left text-left text-left">
-                  <div className="flex items-center justify-between text-left leading-none text-left text-left text-left text-left">
-                    <div className="flex items-center gap-4 md:gap-6 text-left leading-none text-left text-left text-left text-left text-left">
-                      <div className="w-14 h-14 bg-white rounded-2xl flex flex-col items-center justify-center border font-black text-secondary shrink-0 leading-none shadow-sm text-center text-left text-left">
-                        <span className="text-[10px] text-[#ce1212] uppercase mb-1 leading-none text-left text-left">HAFTA</span>
-                        <span className="text-xl leading-none text-left text-left">{week.week_number}</span>
-                      </div>
-                     <div className="space-y-1 text-left leading-none">
-  <p className="text-[10px] font-black text-amber-600 flex items-center gap-1 uppercase italic mb-2 leading-none">
-    <Clock size={12} /> 
-    {/* Direkt week.duration kullanıyoruz, fonksiyon saniyeyi dakikaya çevirecek */}
-    {formatDuration(week.duration)}
-  </p>
-  <div className="flex items-center gap-2 leading-none">
-     <span className="text-sm font-black text-secondary leading-none">%{week.progress} İlerleme</span>
-     {week.progress === 100 && <CheckCircle size={14} className="text-green-500 leading-none shadow-sm" />}
-  </div>
-</div>
-                    </div>
-                  </div>
-                  <div className="w-full bg-gray-200 h-2.5 rounded-full overflow-hidden border border-gray-200 shadow-inner leading-none text-left text-left text-left">
-                    <div className={`h-full transition-all duration-1000 leading-none text-left text-left ${week.progress === 100 ? 'bg-green-50 shadow-[0_0_10px_rgba(34,197,94,0.3)]' : 'bg-[#ce1212]'}`} style={{ width: `${week.progress}%` }} />
-                  </div>
-
-                  {/* Sınav Detay Analizi */}
-                  {week.quiz_results && week.quiz_results.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-gray-200 space-y-4 text-left leading-normal text-left text-left text-left text-left text-left">
-                        <div className="flex items-center gap-2 mb-2 text-left text-left text-left text-left">
-                            <ListChecks size={14} className="text-[#ce1212] text-left text-left" />
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-left text-left">Haftalık Sınav Sonuçları</p>
-                        </div>
-                        <div className="grid gap-3 text-left text-left text-left">
-                          {week.quiz_results.map((r, ri) => (
-                            <div key={ri} className={`p-3 rounded-xl border text-[11px] font-bold leading-tight text-left text-left ${r.is_correct ? 'bg-green-50/50 border-green-200 text-green-800 text-left text-left' : 'bg-red-50/50 border-red-200 text-red-800 text-left text-left'}`}>
-                              <div className="flex justify-between items-start gap-2 text-left text-left">
-                                <span className="text-left text-left">{ri+1}. {r.question_text}</span>
-                                {r.is_correct ? <CheckCircle size={12} className="text-left text-left" /> : <AlertCircle size={12} className="text-left text-left" />}
-                              </div>
-                              <div className="mt-2 flex gap-4 text-[9px] uppercase font-black tracking-tighter text-left text-left text-left text-left text-left">
-                                <span className="text-left text-left">Seçilen: {r.selected_option}</span>
-                                {!r.is_correct && <span className="text-green-600 italic text-left text-left">Doğru: {r.correct_option}</span>}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                    </div>
-                  )}
-
-                  {/* AI Soruları */}
-                  {week.questions && week.questions.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-gray-200 space-y-3 text-left leading-normal text-left text-left text-left text-left text-left text-left text-left text-left">
-                        <div className="flex items-center gap-2 mb-2 text-left text-left text-left text-left">
-                            <MessageSquare size={14} className="text-blue-500 text-left text-left" />
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-left text-left">Yapay Zekaya Sorduğu Sorular</p>
-                        </div>
-                        <div className="space-y-2 text-left text-left text-left text-left">
-                          {week.questions.map((q, qi) => (
-                            <div key={qi} className="bg-white p-3 rounded-xl border border-gray-100 text-[11px] font-medium italic text-gray-600 shadow-sm leading-relaxed text-left text-left text-left">
-                                &quot;{q}&quot;
-                            </div>
-                          ))}
-                        </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-            <div className="p-8 bg-gray-50 border-t flex justify-center leading-none text-center ">
-                <button onClick={() => setSelectedStudent(null)} className="w-full md:w-auto bg-secondary text-white px-16 py-4 rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 shadow-xl transition-all text-center leading-none text-left text-left">PANELİ KAPAT VE LİSTEYE DÖN</button>
-            </div>
+     {/* KARNE MODALI - SADECE AI SORULARI VE TEST SONUÇLARI */}
+{selectedStudent && (
+  <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[1000] flex items-center justify-center p-2 md:p-4 animate-in fade-in duration-300 overflow-y-auto text-left leading-none">
+    <div className="bg-white rounded-[2rem] md:rounded-[3.5rem] w-full max-w-3xl max-h-[92vh] overflow-hidden shadow-2xl flex flex-col border-4 border-white my-auto text-left">
+      
+      {/* HEADER */}
+      <div className="p-6 md:p-10 border-b bg-gray-50 flex justify-between items-center shrink-0 text-left leading-none">
+        <div className="flex items-center gap-4 text-left leading-none">
+          <div className="bg-secondary p-3 rounded-2xl text-white shadow-xl shrink-0 flex items-center justify-center">
+            <Users size={28} />
+          </div>
+          <div className="text-left leading-none">
+            <h3 className="font-black text-xl md:text-2xl uppercase tracking-tighter text-secondary leading-none mb-2">Akademik Performans Karnesi</h3>
+            <p className="text-[10px] text-[#ce1212] font-black uppercase italic leading-none">
+              {selectedStudent.first_name} {selectedStudent.last_name} | {getDeptName(selectedStudent.department)}
+            </p>
           </div>
         </div>
-      )}
+        <button onClick={() => setSelectedStudent(null)} className="bg-white p-3 rounded-full hover:bg-red-50 border transition-all text-gray-400 shadow-sm active:scale-90 flex items-center justify-center">
+          <X size={24} />
+        </button>
+      </div>
+
+      {/* HAFTALIK DETAYLAR LİSTESİ */}
+      <div className="flex-1 overflow-y-auto p-4 md:p-10 space-y-8 bg-white custom-scrollbar text-left leading-normal">
+        {selectedStudent.weekly_breakdown?.map((week) => (
+          <div key={week.week_number} className="p-6 md:p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 space-y-6 relative overflow-hidden text-left leading-normal">
+            
+            {/* HAFTA BAŞLIĞI */}
+            <div className="flex items-center gap-4 text-left leading-none">
+              <div className="w-14 h-14 bg-white rounded-2xl flex flex-col items-center justify-center border font-black text-secondary shrink-0 shadow-sm leading-none">
+                <span className="text-[9px] text-[#ce1212] uppercase leading-none mb-1">HAFTA</span>
+                <span className="text-xl leading-none">{week.week_number}</span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-base font-black text-secondary leading-none">%{week.progress} Tamamlandı</span>
+                {week.progress === 100 && <span className="text-[10px] text-green-600 font-bold flex items-center gap-1"><Check size={12}/> BAŞARIYLA BİTİRİLDİ</span>}
+              </div>
+            </div>
+
+            {/* 1. SINAV DETAY ANALİZİ */}
+            {week.quiz_results && week.quiz_results.length > 0 && (
+              <div className="space-y-4 text-left leading-normal border-t border-gray-200 pt-6">
+                <div className="flex items-center gap-2 text-secondary leading-none mb-2">
+                  <ListChecks size={16} className="text-[#ce1212]" />
+                  <p className="text-[10px] font-black uppercase tracking-widest leading-none">Haftalık Sınav Sonuç Analizi</p>
+                </div>
+                <div className="grid gap-3 text-left">
+                  {week.quiz_results.map((r, ri) => (
+                    <div key={ri} className={`p-4 rounded-2xl border-2 transition-all text-left ${r.is_correct ? 'bg-green-50/30 border-green-100' : 'bg-red-50/30 border-red-100'}`}>
+                      <div className="flex justify-between items-start gap-3 text-left leading-tight">
+                        <span className="text-[11px] font-bold text-secondary flex gap-2">
+                          <span className="opacity-40">{ri + 1}.</span> {r.question_text}
+                        </span>
+                        {r.is_correct ? <CheckCircle size={14} className="text-green-500 shrink-0" /> : <AlertCircle size={14} className="text-red-500 shrink-0" />}
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-6 border-t border-black/5 pt-3 text-left">
+                        <div className="flex flex-col items-start leading-tight">
+                          <span className="text-[8px] font-black text-gray-400 uppercase mb-1">Seçilen Şık</span>
+                          <span className={`text-[10px] font-black ${r.is_correct ? 'text-green-600' : 'text-red-600'}`}>{r.selected_option}</span>
+                        </div>
+                        {!r.is_correct && (
+                          <div className="flex flex-col items-start leading-tight">
+                            <span className="text-[8px] font-black text-gray-400 uppercase mb-1">Doğru Şık</span>
+                            <span className="text-[10px] font-black text-green-600">{r.correct_option}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 2. YAPAY ZEKA SORULARI */}
+            {week.questions && week.questions.length > 0 && (
+              <div className="bg-blue-50/30 p-6 rounded-3xl border-2 border-blue-100/50 space-y-4 text-left leading-normal border-t border-blue-100 mt-4">
+                <div className="flex items-center gap-2 text-blue-600 leading-none">
+                  <MessageSquare size={16} />
+                  <p className="text-[10px] font-black uppercase tracking-widest leading-none">Yapay Zekaya Sorduğu Sorular</p>
+                </div>
+                <div className="space-y-3 text-left">
+                  {week.questions.map((q, qi) => (
+                    <div key={qi} className="bg-white p-4 rounded-2xl border border-blue-100 shadow-sm relative group text-left">
+                      <p className="text-[11px] font-medium italic text-gray-600 leading-relaxed text-left">
+                        &quot;{q}&quot;
+                      </p>
+                      <Bot size={14} className="absolute top-4 right-4 text-blue-200 opacity-20" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* AKTİVİTE YOKSA DURUMU */}
+            {(!week.quiz_results || week.quiz_results.length === 0) && (!week.questions || week.questions.length === 0) && (
+              <div className="text-left py-4 opacity-30 italic text-[10px] font-bold uppercase tracking-widest leading-none">
+                Bu hafta henüz bir sınav veya AI etkileşimi bulunmuyor.
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* FOOTER */}
+      <div className="p-8 bg-gray-50 border-t flex justify-center shrink-0 leading-none">
+        <button 
+          onClick={() => setSelectedStudent(null)} 
+          className="w-full md:w-auto bg-secondary text-white px-16 py-4 rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 shadow-xl transition-all flex items-center justify-center leading-none"
+        >
+          PANELİ KAPAT VE LİSTEYE DÖN
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }
