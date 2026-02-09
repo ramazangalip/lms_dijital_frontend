@@ -27,6 +27,7 @@ interface WeeklyContent {
   title: string; 
   description: string;
   intro_title?: string; 
+  intro_description?: string; 
   intro_video_url?: string; 
   release_date?: string; 
   is_locked: boolean; 
