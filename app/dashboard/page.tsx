@@ -280,13 +280,16 @@ const getIntroData = () => {
     try {
       // 2. Fetch ile Backend Akışına Bağlan
       // Not: API URL'ini kendi yapına göre kontrol et (örn: `${process.env.NEXT_PUBLIC_API_URL}/contents/...`)
-      const response = await fetch(`https://api.yapayzekadesteklidijitalsinif.com.tr/api/contents/quiz-analysis/${currentAttemptId}/`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`, // Token ismini kontrol et
-        },
-      });
+     // Token ismini projenin geri kalanına göre kontrol et ('token' mı 'access' mi?)
+const token = localStorage.getItem('token') || localStorage.getItem('access'); 
 
+const response = await fetch(`https://api.yapayzekadesteklidijitalsinif.com.tr/api/contents/quiz-analysis/${currentAttemptId}/`, {
+  method: 'GET',
+  headers: {
+    'Authorization': `Bearer ${token}`, // Bearer'dan sonra boşluk olduğundan emin ol
+    'Accept': 'text/plain',
+  },
+});
       if (!response.ok) throw new Error("Sunucu yanıt vermedi.");
 
       // 3. Okuyucu (Reader) Başlat
