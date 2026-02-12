@@ -275,24 +275,22 @@ const getIntroData = () => {
   setIsAnalysisModalOpen(true);
   setAiAnalysisFeedback("");
 
-  // Sistemindeki doğru token ismini bul (Genelde 'access' veya 'token' olur)
-  const token = localStorage.getItem('access') || localStorage.getItem('token');
+  // EKRAN GÖRÜNTÜSÜNE GÖRE DOĞRU ANAHTAR: access_token
+  const token = localStorage.getItem('access_token'); 
 
   try {
     const response = await fetch(`https://api.yapayzekadesteklidijitalsinif.com.tr/api/contents/quiz-analysis/${currentAttemptId}/`, {
       method: 'GET',
       headers: {
-        // BOŞLUĞA DİKKAT: 'Bearer ' + token
-        'Authorization': `Bearer ${token}`, 
+        'Authorization': `Bearer ${token}`, // Boşluğa dikkat
         'Accept': 'text/plain',
       },
     });
 
-    if (response.status === 401) {
-      throw new Error("Oturum süreniz dolmuş veya yetkiniz yok.");
+    if (!response.ok) {
+      if (response.status === 401) throw new Error("Yetkilendirme hatası: access_token geçersiz.");
+      throw new Error(`Sunucu hatası: ${response.status}`);
     }
-
-    if (!response.ok) throw new Error("Sunucu hatası: " + response.status);
 
     const reader = response.body?.getReader();
     const decoder = new TextDecoder();
@@ -307,8 +305,8 @@ const getIntroData = () => {
       setAiAnalysisFeedback((prev) => prev + chunk);
     }
   } catch (err) {
-    console.error("401 Hatası Detayı:", err);
-    setAiAnalysisFeedback("Analiz yüklenemedi. Lütfen giriş yaptığınızdan emin olun.");
+    console.error("Akış Hatası:", err);
+    setAiAnalysisFeedback("Analiz yüklenemedi. Lütfen tekrar giriş yapmayı deneyin.");
     setIsAnalysisLoading(false);
   }
 };
