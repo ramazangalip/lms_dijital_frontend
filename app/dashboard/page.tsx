@@ -271,11 +271,47 @@ const getIntroData = () => {
   };
   const handleFetchAIAnalysis = async () => {
     if (!currentAttemptId) return;
-    setIsAnalysisLoading(true); setIsAnalysisModalOpen(true);
+    
+    // 1. Arayüzü Hazırla
+    setIsAnalysisLoading(true);
+    setIsAnalysisModalOpen(true);
+    setAiAnalysisFeedback(""); // Önceki içeriği temizle
+
     try {
-      const res = await api.get(`/contents/quiz-analysis/${String(currentAttemptId)}/`);
-      setAiAnalysisFeedback(res.data.ai_feedback);
-    } catch (err) { setAiAnalysisFeedback("Analiz yüklenemedi."); } finally { setIsAnalysisLoading(false); }
+      // 2. Fetch ile Backend Akışına Bağlan
+      // Not: API URL'ini kendi yapına göre kontrol et (örn: `${process.env.NEXT_PUBLIC_API_URL}/contents/...`)
+      const response = await fetch(`https://api.yapayzekadesteklidijitalsinif.com.tr/api/contents/quiz-analysis/${currentAttemptId}/`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`, // Token ismini kontrol et
+        },
+      });
+
+      if (!response.ok) throw new Error("Sunucu yanıt vermedi.");
+
+      // 3. Okuyucu (Reader) Başlat
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) return;
+
+      setIsAnalysisLoading(false); // Kelimeler gelmeye başlayınca yükleniyor ikonunu kaldır
+
+      // 4. Gelen Parçaları (Chunks) Döngüde Oku
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        // Gelen binary veriyi metne çevir ve state'e ekle
+        const chunk = decoder.decode(value, { stream: true });
+        setAiAnalysisFeedback((prev) => prev + chunk);
+      }
+
+    } catch (err) {
+      console.error("Analiz akış hatası:", err);
+      setAiAnalysisFeedback("Analiz şu an teknik bir nedenle yüklenemedi. Lütfen daha sonra tekrar deneyin.");
+      setIsAnalysisLoading(false);
+    }
   };
 
   const handleSendChatMessage = async (e: React.FormEvent) => {
