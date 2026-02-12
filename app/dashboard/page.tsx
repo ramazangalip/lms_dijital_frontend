@@ -270,52 +270,48 @@ const getIntroData = () => {
     }
   };
   const handleFetchAIAnalysis = async () => {
-    if (!currentAttemptId) return;
-    
-    // 1. Arayüzü Hazırla
-    setIsAnalysisLoading(true);
-    setIsAnalysisModalOpen(true);
-    setAiAnalysisFeedback(""); // Önceki içeriği temizle
+  if (!currentAttemptId) return;
+  setIsAnalysisLoading(true);
+  setIsAnalysisModalOpen(true);
+  setAiAnalysisFeedback("");
 
-    try {
-      // 2. Fetch ile Backend Akışına Bağlan
-      // Not: API URL'ini kendi yapına göre kontrol et (örn: `${process.env.NEXT_PUBLIC_API_URL}/contents/...`)
-     // Token ismini projenin geri kalanına göre kontrol et ('token' mı 'access' mi?)
-const token = localStorage.getItem('token') || localStorage.getItem('access'); 
+  // Sistemindeki doğru token ismini bul (Genelde 'access' veya 'token' olur)
+  const token = localStorage.getItem('access') || localStorage.getItem('token');
 
-const response = await fetch(`https://api.yapayzekadesteklidijitalsinif.com.tr/api/contents/quiz-analysis/${currentAttemptId}/`, {
-  method: 'GET',
-  headers: {
-    'Authorization': `Bearer ${token}`, // Bearer'dan sonra boşluk olduğundan emin ol
-    'Accept': 'text/plain',
-  },
-});
-      if (!response.ok) throw new Error("Sunucu yanıt vermedi.");
+  try {
+    const response = await fetch(`https://api.yapayzekadesteklidijitalsinif.com.tr/api/contents/quiz-analysis/${currentAttemptId}/`, {
+      method: 'GET',
+      headers: {
+        // BOŞLUĞA DİKKAT: 'Bearer ' + token
+        'Authorization': `Bearer ${token}`, 
+        'Accept': 'text/plain',
+      },
+    });
 
-      // 3. Okuyucu (Reader) Başlat
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) return;
-
-      setIsAnalysisLoading(false); // Kelimeler gelmeye başlayınca yükleniyor ikonunu kaldır
-
-      // 4. Gelen Parçaları (Chunks) Döngüde Oku
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-
-        // Gelen binary veriyi metne çevir ve state'e ekle
-        const chunk = decoder.decode(value, { stream: true });
-        setAiAnalysisFeedback((prev) => prev + chunk);
-      }
-
-    } catch (err) {
-      console.error("Analiz akış hatası:", err);
-      setAiAnalysisFeedback("Analiz şu an teknik bir nedenle yüklenemedi. Lütfen daha sonra tekrar deneyin.");
-      setIsAnalysisLoading(false);
+    if (response.status === 401) {
+      throw new Error("Oturum süreniz dolmuş veya yetkiniz yok.");
     }
-  };
+
+    if (!response.ok) throw new Error("Sunucu hatası: " + response.status);
+
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+    if (!reader) return;
+
+    setIsAnalysisLoading(false);
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      setAiAnalysisFeedback((prev) => prev + chunk);
+    }
+  } catch (err) {
+    console.error("401 Hatası Detayı:", err);
+    setAiAnalysisFeedback("Analiz yüklenemedi. Lütfen giriş yaptığınızdan emin olun.");
+    setIsAnalysisLoading(false);
+  }
+};
 
   const handleSendChatMessage = async (e: React.FormEvent) => {
     e.preventDefault();
