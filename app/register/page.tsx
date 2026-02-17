@@ -25,7 +25,7 @@ export default function RegisterPage() {
   const departments = [
     { id: 'ilahiyat', name: 'İlahiyat' },
     { id: 'isg', name: 'İş Sağlığı Ve Güvenliği' },
-    { id: 'saglikkurumlariisletmeciligi', name: 'Sağlık Kurumları İşletmeciliği' },
+    { id: 'saglikyonetimi', name: 'Sağlık Yönetimi' },
     { id: 'beslenmevediyetetik', name: 'Beslenme Ve Diyetetik' },
     { id: 'hemsirelik', name: 'Hemşirelik' },
     { id: 'webtasarimvekodlama', name: 'Web Tasarım Ve Kodlama' }

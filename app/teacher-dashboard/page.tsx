@@ -170,7 +170,7 @@ export default function TeacherDashboard() {
   const departmentList = [
     { id: 'ilahiyat', name: 'İlahiyat' },
     { id: 'isg', name: 'İş Sağlığı Ve Güvenliği' },
-    { id: 'saglikkurumlariisletmeciligi', name: 'Sağlık Kurumları İşletmeciliği' },
+    { id: 'saglikyonetimi', name: 'Sağlık Yonetimi' },
     { id: 'beslenmevediyetetik', name: 'Beslenme Ve Diyetetik' },
     { id: 'hemsirelik', name: 'Hemşirelik' },
     { id: 'webtasarimvekodlama', name: 'Web Tasarım Ve Kodlama' }
