@@ -148,12 +148,13 @@ export default function TeacherDashboard() {
   // --- STATE YÖNETİMİ ---
   const [activeTab, setActiveTab] = useState<'content' | 'analytics'>('content');
   const [loading, setLoading] = useState(false);
+const [pdfLoading, setPdfLoading] = useState(false);
+const [karneLoading, setKarneLoading] = useState(false);
   const [fetchingWeek, setFetchingWeek] = useState(false);
   const [analytics, setAnalytics] = useState<StudentAnalytics[]>([]);
   const [bulkData, setBulkData] = useState<BulkStudentData[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<StudentAnalytics | null>(null);
-  const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
-  
+const [selectedDepartment, setSelectedDepartment] = useState<string>('ilahiyat');  
   const [weekNumber, setWeekNumber] = useState(1);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -260,16 +261,18 @@ export default function TeacherDashboard() {
   }, [weekNumber, activeTab, fetchWeekDetail]);
 
   // --- ANALİZ VERİLERİNİ ÇEKME ---
+  // --- ANALİZ VERİLERİNİ ÇEKME ---
   const fetchAnalytics = useCallback(async () => {
+    setLoading(true);
     try {
-      const [res, bulkRes] = await Promise.all([
-        api.get('/contents/analytics/'),
-        api.get('/contents/bulk-academic-report/')
-      ]);
+      // SADECE ana tabloyu dolduracak hafif veriyi çekiyoruz
+      const res = await api.get('/contents/analytics/');
       setAnalytics(res.data);
-      setBulkData(bulkRes.data);
+      // bulkRes isteği buradan tamamen silindi.
     } catch (err) {
       console.error("Analiz verileri yüklenemedi");
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -281,14 +284,11 @@ export default function TeacherDashboard() {
 
   // --- FİLTRELEME HESAPLAMALARI ---
   const filteredAnalytics = useMemo(() => {
-    if (selectedDepartment === 'all') return analytics;
-    return analytics.filter(s => s.department === selectedDepartment);
-  }, [analytics, selectedDepartment]);
+  return analytics.filter(s => s.department === selectedDepartment);
+}, [analytics, selectedDepartment]);
 
-  const filteredBulkData = useMemo(() => {
-    if (selectedDepartment === 'all') return bulkData;
-    return bulkData.filter(s => s.department === selectedDepartment);
-  }, [bulkData, selectedDepartment]);
+// PDF verisi zaten sadece seçili bölümden geleceği için filtreye gerek yok
+const filteredBulkData = useMemo(() => bulkData, [bulkData]);
 
   // --- MATERYAL ETKİLEŞİMLERİ ---
   const addMaterialRow = () => {
@@ -410,9 +410,39 @@ export default function TeacherDashboard() {
     }
   };
 
-  const handlePrintAll = () => {
-    window.print();
+  const handlePrintAll = async () => {
+    if (!selectedDepartment || selectedDepartment === 'all') {
+      alert("Lütfen önce bir bölüm seçiniz.");
+      return;
+    }
+
+    setPdfLoading(true);
+    setBulkData([]); // <--- KRİTİK: Önceki bölümün verilerini tamamen temizle!
+    try {
+      const res = await api.get(`/contents/bulk-academic-report/?department=${selectedDepartment}`);
+      // Veriyi setliyoruz. Yazdırma işlemini useEffect yapacak.
+      setBulkData(res.data);
+    } catch (err) {
+      alert("Rapor verileri çekilirken hata oluştu.");
+      setPdfLoading(false);
+    }
   };
+
+  // bulkData dolduğunda ve pdfLoading true olduğunda yazdırmayı başlat
+// PDF Yazdırma Takipçisi
+  useEffect(() => {
+    // bulkData dolduğunda VE pdfLoading true olduğunda (yani butona basılmışsa)
+    if (bulkData.length > 0 && pdfLoading) {
+      console.log("PDF Verisi hazır, yazdırma başlatılıyor...");
+      
+      const timer = setTimeout(() => {
+        window.print();
+        setPdfLoading(false); // İşlem bitince yüklemeyi kapat
+      }, 1500); // 1.5 saniye bekle (DOM'un dolması için)
+      
+      return () => clearTimeout(timer);
+    }
+  }, [bulkData, pdfLoading]);
 
   // filteredBulkData'yı 6'şarlı gruplara bölen yardımcı fonksiyon
 
@@ -774,26 +804,42 @@ export default function TeacherDashboard() {
                   <div className="bg-blue-50 p-4 rounded-2xl text-blue-600 flex items-center justify-center leading-none text-left"><Users size={32} className="text-left" /></div>
                   <div className="text-left leading-none text-left text-left"><p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-2 leading-none text-left">Kayıtlı Öğrenci</p><p className="text-3xl font-black text-left">{filteredAnalytics.length}</p></div>
                </div>
-               <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto leading-none text-left">
-                 <div className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-xl border border-gray-200 text-left text-left">
-                    <Filter size={16} className="text-gray-400 text-left" />
-                    <select value={selectedDepartment} onChange={(e) => setSelectedDepartment(e.target.value)} className="bg-transparent text-[10px] font-black uppercase outline-none cursor-pointer text-left">
-                      <option value="all" className="text-left">Tüm Bölümler</option>
-                      {departmentList.map(d => <option key={d.id} value={d.id} className="text-left">{d.name}</option>)}
-                    </select>
-                 </div>
-                 {/* PDF RAPOR BUTONU DÜZENLEMESİ */}
-                <button 
-                  onClick={handlePrintAll} 
-                  className="flex items-center justify-center gap-3 bg-red-700 hover:bg-red-800 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl transition-all leading-none active:scale-95 text-left"
-                >
-                  <FileText size={18} className="text-left" /> 
-                  {selectedDepartment === 'all' 
-                    ? "TÜM BÖLÜMLER" 
-                    : getDeptName(selectedDepartment).toUpperCase()
-                  } PDF RAPORU
-                </button>
-               </div>
+              <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto leading-none text-left">
+  {/* BÖLÜM SEÇİCİ */}
+  <div className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-xl border border-gray-200 text-left">
+    <Filter size={16} className="text-gray-400 text-left" />
+    <select 
+      value={selectedDepartment} 
+      onChange={(e) => setSelectedDepartment(e.target.value)} 
+      className="bg-transparent text-[10px] font-black uppercase outline-none cursor-pointer text-left"
+    >
+      {/* 'Tüm Bölümler' seçeneği buradan silindi (Uyumsuzluk yarattığı için) */}
+      {departmentList.map(d => (
+        <option key={d.id} value={d.id} className="text-left">{d.name}</option>
+      ))}
+    </select>
+  </div>
+
+  {/* PDF RAPOR BUTONU */}
+  <button 
+    onClick={handlePrintAll} 
+    disabled={pdfLoading} // İstek atılırken mükerrer tıklamayı önlemek için
+    className={`flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl transition-all leading-none active:scale-95 text-left ${
+      loading ? 'bg-gray-500 cursor-wait' : 'bg-red-700 hover:bg-red-800 text-white'
+    }`}
+  >
+    {pdfLoading ? (
+      <RefreshCcw size={18} className="animate-spin text-left" />
+    ) : (
+      <FileText size={18} className="text-left" />
+    )}
+    
+    {pdfLoading 
+      ? "RAPOR HAZIRLANIYOR..." 
+      : `${getDeptName(selectedDepartment).toUpperCase()} PDF RAPORU`
+    }
+  </button>
+</div>
             </div>
 
             <div className="bg-white rounded-3xl md:rounded-[2.5rem] shadow-2xl border border-gray-100 overflow-hidden text-left leading-normal">
@@ -860,7 +906,18 @@ export default function TeacherDashboard() {
             </td>
             <td className="p-5 md:p-8 text-center">
               <button 
-                onClick={() => setSelectedStudent(student)} 
+                onClick={async () => {
+   setKarneLoading(true);
+    try {
+      // Sadece bu öğrenciye özel haftalık detayları çekiyoruz
+      const res = await api.get(`/contents/analytics/?student_id=${student.id}`);
+      setSelectedStudent(res.data); // Veri gelince modal otomatik ve dolu açılır
+    } catch (err) {
+      alert("Karne verileri yüklenemedi.");
+    } finally {
+      setKarneLoading(false);
+    }
+  }}
                 className="inline-flex items-center gap-2 text-[9px] font-black uppercase bg-secondary text-white px-5 py-2.5 rounded-xl hover:bg-black transition-all active:scale-95 shadow-md"
               >
                 <Search size={14} /> HAFTALIK KARNE
