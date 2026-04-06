@@ -169,12 +169,12 @@ const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
 
   // --- BÖLÜM LİSTESİ ---
   const departmentList = [
-    { id: 'ilahiyat', name: 'İlahiyat' },
-    { id: 'isg', name: 'İş Sağlığı Ve Güvenliği' },
-    { id: 'saglikyonetimi', name: 'Sağlık Yonetimi' },
-    { id: 'beslenmevediyetetik', name: 'Beslenme Ve Diyetetik' },
-    { id: 'hemsirelik', name: 'Hemşirelik' },
-    { id: 'webtasarimvekodlama', name: 'Web Tasarım Ve Kodlama' }
+    { id: 'ilahiyatt', name: 'İlahiyat' },
+    { id: 'isgf', name: 'İş Sağlığı Ve Güvenliği' },
+    { id: 'saglikyonetimih', name: 'Sağlık Yonetimi' },
+    { id: 'beslenmevediyetetikh', name: 'Beslenme Ve Diyetetik' },
+    { id: 'hemsirelikb', name: 'Hemşirelik' },
+    { id: 'webtasarimvekodlamab', name: 'Web Tasarım Ve Kodlama' }
   ];
 
   const getDeptName = (id: string) => {
