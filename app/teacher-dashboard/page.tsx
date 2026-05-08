@@ -154,7 +154,7 @@ const [karneLoading, setKarneLoading] = useState(false);
   const [analytics, setAnalytics] = useState<StudentAnalytics[]>([]);
   const [bulkData, setBulkData] = useState<BulkStudentData[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<StudentAnalytics | null>(null);
-const [selectedDepartment, setSelectedDepartment] = useState<string>('all');  
+const [selectedDepartment, setSelectedDepartment] = useState<string>('ilahiyat');  
   const [weekNumber, setWeekNumber] = useState(1);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -169,12 +169,12 @@ const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
 
   // --- BÖLÜM LİSTESİ ---
   const departmentList = [
-    { id: 'ilahiyatt', name: 'İlahiyat' },
-    { id: 'isgf', name: 'İş Sağlığı Ve Güvenliği' },
-    { id: 'saglikyonetimih', name: 'Sağlık Yonetimi' },
-    { id: 'beslenmevediyetetikh', name: 'Beslenme Ve Diyetetik' },
-    { id: 'hemsirelikb', name: 'Hemşirelik' },
-    { id: 'webtasarimvekodlamab', name: 'Web Tasarım Ve Kodlama' }
+    { id: 'ilahiyat', name: 'İlahiyat' },
+    { id: 'isg', name: 'İş Sağlığı Ve Güvenliği' },
+    { id: 'saglikyonetimi', name: 'Sağlık Yonetimi' },
+    { id: 'beslenmevediyetetik', name: 'Beslenme Ve Diyetetik' },
+    { id: 'hemsirelik', name: 'Hemşirelik' },
+    { id: 'webtasarimvekodlama', name: 'Web Tasarım Ve Kodlama' }
   ];
 
   const getDeptName = (id: string) => {
