@@ -1036,14 +1036,13 @@ const filteredBulkData = useMemo(() => bulkData, [bulkData]);
           const fixTR = (str: string) => !str ? "" : str.replace(/ı/g, "i").replace(/ş/g, "s").replace(/ğ/g, "g").replace(/ç/g, "c").replace(/ö/g, "o").replace(/ü/g, "u").replace(/İ/g, "I").replace(/Ş/g, "S").replace(/Ğ/g, "G").replace(/Ç/g, "C").replace(/Ö/g, "O").replace(/Ü/g, "U");
           doc.setFont("Helvetica", "bold"); doc.setFillColor(67, 24, 108); doc.rect(0, 0, 210, 25, "F");
           doc.setTextColor(255, 255, 255); doc.setFontSize(13); doc.text("SISTEMDE AKTIF KATILIM VE CALISMA RAPORU", 30, 15);
-          
-          // PDF tablosuna da Türkçe karakter korumalı ve formatlanmış süreyi basıyoruz
-          const pdfRows = studentList.map((item) => [ 
-            `#${item.rank}`, 
-            fixTR(item.student), 
-            selectedDepartment ? fixTR(String(selectedDepartment).toUpperCase()) : "COCUK GELISIMI", 
-            fixTR(convertHoursToText(item.time)) 
-          ]);
+         // PDF tablosuna da Türkçe karakter korumalı ve formatlanmış süreyi basıyoruz
+const pdfRows = (studentList || []).map((item: any) => [ 
+  `#${item?.rank || ''}`, 
+  fixTR(item?.student || ''), 
+  selectedDepartment ? fixTR(String(selectedDepartment).toUpperCase()) : "COCUK GELISIMI", 
+  fixTR(convertHoursToText(item?.time || 0)) 
+]);
 
           autoTable(doc, {
             startY: 35,
