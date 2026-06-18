@@ -203,7 +203,7 @@ useEffect(() => {
       setSystemTimeLoading(false);
     })
     .catch(err => {
-      print("Zaman analitiği yüklenirken hata:", err);
+      console.error("Zaman analitiği yüklenirken hata:", err);
       setSystemTimeLoading(false);
     });
 }, [selectedDepartment, activeTab]);
