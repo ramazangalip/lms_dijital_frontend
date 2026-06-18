@@ -1033,8 +1033,7 @@ const filteredBulkData = useMemo(() => bulkData, [bulkData]);
           const { jsPDF } = await import('jspdf');
           const autoTable = (await import('jspdf-autotable')).default;
           const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-          const fixTR = (str) => !str ? "" : str.replace(/ı/g, "i").replace(/ş/g, "s").replace(/ğ/g, "g").replace(/ç/g, "c").replace(/ö/g, "o").replace(/ü/g, "u").replace(/İ/g, "I").replace(/Ş/g, "S").replace(/Ğ/g, "G").replace(/Ç/g, "C").replace(/Ö/g, "O").replace(/Ü/g, "U");
-          
+          const fixTR = (str: string) => !str ? "" : str.replace(/ı/g, "i").replace(/ş/g, "s").replace(/ğ/g, "g").replace(/ç/g, "c").replace(/ö/g, "o").replace(/ü/g, "u").replace(/İ/g, "I").replace(/Ş/g, "S").replace(/Ğ/g, "G").replace(/Ç/g, "C").replace(/Ö/g, "O").replace(/Ü/g, "U");
           doc.setFont("Helvetica", "bold"); doc.setFillColor(67, 24, 108); doc.rect(0, 0, 210, 25, "F");
           doc.setTextColor(255, 255, 255); doc.setFontSize(13); doc.text("SISTEMDE AKTIF KATILIM VE CALISMA RAPORU", 30, 15);
           
