@@ -146,7 +146,7 @@ interface StudentAnalytics {
 
 export default function TeacherDashboard() {
   // --- STATE YÖNETİMİ ---
-  const [activeTab, setActiveTab] = useState<'content' | 'analytics'>('content');
+  const [activeTab, setActiveTab] = useState<'content' | 'analytics' | 'time_analytics'>('content');
   const [loading, setLoading] = useState(false);
 const [pdfLoading, setPdfLoading] = useState(false);
 const [karneLoading, setKarneLoading] = useState(false);
