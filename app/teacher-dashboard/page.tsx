@@ -980,229 +980,11 @@ const filteredBulkData = useMemo(() => bulkData, [bulkData]);
 </div>
           </div>
         )}
-      {/* --- SEKME 5: SİSTEM ZAMAN ANALİTİĞİ VE ETKİNLİK DAĞILIMLARI --- */}
+   {/* --- SEKME 5: SİSTEM ZAMAN ANALİTİĞİ VE ETKİNLİK DAĞILIMLARI --- */}
 {activeTab === 'time_analytics' && (
   <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
     
     {/* ÜST SEÇİM KONTROLÜ VE BÖLÜM FİLTRESİ */}
-    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white p-6 rounded-3xl shadow-xl border border-gray-100 text-left">
-      <div className="text-left leading-none">
-        <h2 className="text-xl font-black text-purple-950 uppercase leading-none border-l-4 border-purple-600 pl-3">Sistem Zaman Yönetimi Verileri</h2>
-        <p className="text-[10px] text-gray-400 font-bold uppercase mt-2 tracking-widest italic leading-none">Öğrencilerin Aktif Kalma Süreleri ve Materyal Dağılım Analizleri</p>
-      </div>
-      
-      <div className="flex items-center gap-2 bg-gray-50 px-4 py-2.5 rounded-xl border border-gray-200 text-left shadow-inner w-full md:w-auto">
-        <Filter size={16} className="text-purple-600" />
-        <select 
-          value={selectedDepartment} 
-          onChange={(e) => setSelectedDepartment(e.target.value)} 
-          className="bg-transparent text-[10px] font-black uppercase outline-none cursor-pointer text-purple-950 w-full font-black"
-        >
-          {Array.isArray(departmentList) && departmentList.map(d => (
-            <option key={d.id} value={d.id} className="text-black">{d.name}</option>
-          ))}
-        </select>
-      </div>
-    </div>
-
-    {/* YÜKLENİYOR DURUMU KONTROLÜ */}
-    {systemTimeLoading ? (
-      <div className="bg-white p-16 text-center text-gray-400 font-black uppercase text-xs tracking-widest rounded-3xl border border-dashed shadow-sm animate-pulse">
-        Sistem Zaman Analizleri Veritabanından Jet Hızıyla Çekiliyor...
-      </div>
-    ) : (
-      (() => {
-        // En üst seviyedeki güvenli state'lerden veriyi besliyoruz
-        const maxEngagement = systemTimeData?.max_engagement || { student: "Veri Yok", time: "0 Saat" };
-        const minEngagement = systemTimeData?.min_engagement || { student: "Veri Yok", time: "0 Saat" };
-        const activityList = Array.isArray(systemTimeData?.activity_distribution) ? systemTimeData?.activity_distribution : [];
-        const studentList = Array.isArray(systemTimeData?.raw_student_list) ? systemTimeData?.raw_student_list : [];
-
-        const maxActivityHours = activityList.reduce((max, item) => item.hours > max ? item.hours : max, 1);
-
-        const exportZamanRaporPDF = async () => {
-          const { jsPDF } = await import('jspdf');
-          const autoTable = (await import('jspdf-autotable')).default;
-          const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-          
-          const fixTR = (str) => {
-            if (!str) return "";
-            return str
-              .replace(/ı/g, "i").replace(/ş/g, "s").replace(/ğ/g, "g")
-              .replace(/ç/g, "c").replace(/ö/g, "o").replace(/ü/g, "u")
-              .replace(/İ/g, "I").replace(/Ş/g, "S").replace(/Ğ/g, "G")
-              .replace(/Ç/g, "C").replace(/Ö/g, "O").replace(/Ü/g, "U");
-          };
-
-          doc.setFont("Helvetica", "bold");
-          doc.setFillColor(67, 24, 108);
-          doc.rect(0, 0, 210, 25, "F");
-          
-          doc.setFillColor(255, 255, 255, 0.2);
-          doc.rect(12, 5, 12, 14, "F");
-          doc.setFillColor(255, 255, 255);
-          doc.rect(15, 9, 6, 6, "F");
-          
-          doc.setTextColor(255, 255, 255);
-          doc.setFontSize(13);
-          doc.text("SISTEMDE AKTIF KATILIM VE CALISMA RAPORU", 30, 15);
-          
-          doc.setTextColor(40, 40, 40);
-          doc.setFontSize(10);
-          doc.setFont("Helvetica", "normal");
-          doc.text(fixTR(`Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`), 15, 35);
-          doc.text(fixTR(`En Uzun Aktif Calisan: ${maxEngagement.student} (${maxEngagement.time})`), 15, 41);
-          
-          doc.setDrawColor(220, 220, 220);
-          doc.line(15, 47, 195, 47);
-
-          const pdfRows = studentList.map((item) => [
-            `#${item.rank}`,
-            fixTR(item.student),
-            selectedDepartment ? fixTR(String(selectedDepartment).toUpperCase()) : "COCUK GELISIMI",
-            fixTR(item.time)
-          ]);
-
-          autoTable(doc, {
-            startY: 53,
-            head: [[fixTR('Sıralama'), fixTR('Öğrenci Adı Soyadı'), fixTR('Bölüm / Departman'), fixTR('Toplam Aktif Süre')]],
-            body: pdfRows,
-            styles: { font: 'Helvetica', fontSize: 9, cellPadding: 3 },
-            headStyles: { fillColor: [67, 24, 108], textColor: [255, 255, 255] },
-            columnStyles: { 0: { cellWidth: 25 }, 3: { cellWidth: 45 } }
-          });
-
-          doc.save(`Sistem_Katilim_Zaman_Analizi.pdf`);
-        };
-
-        return (
-          <>
-            {/* EN AKTİF / EN AZ AKTİF ÖĞRENCİ KARTLARI */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white p-6 rounded-3xl shadow-xl border-l-[10px] border-green-500 text-left flex flex-col justify-between min-h-[130px]">
-                <div>
-                  <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Sistemde En Uzun Süre Kalan Öğrenci</span>
-                  <h3 className="text-lg font-black text-purple-950 uppercase truncate">{maxEngagement.student}</h3>
-                </div>
-                <div className="flex justify-between items-center border-t border-gray-100 pt-3 mt-4">
-                  <span className="text-[10px] text-gray-400 font-bold uppercase">Toplam Aktif Çalışma</span>
-                  <span className="bg-green-100 text-green-700 font-black px-3 py-1 rounded-xl text-sm">{maxEngagement.time}</span>
-                </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-3xl shadow-xl border-l-[10px] border-orange-500 text-left flex flex-col justify-between min-h-[130px]">
-                <div>
-                  <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Sistemde En Az Süre Kalan Öğrenci</span>
-                  <h3 className="text-lg font-black text-purple-950 uppercase truncate">{minEngagement.student}</h3>
-                </div>
-                <div className="flex justify-between items-center border-t border-gray-100 pt-3 mt-4">
-                  <span className="text-[10px] text-gray-400 font-bold uppercase">Toplam Aktif Çalışma</span>
-                  <span className="bg-orange-100 text-orange-700 font-black px-3 py-1 rounded-xl text-sm">{minEngagement.time}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* ETKİNLİK DAĞILIM BARLARI GRAFİĞİ */}
-            <div className="bg-white p-6 rounded-3xl shadow-xl border border-gray-100 text-left space-y-4">
-              <h3 className="text-xs font-black text-purple-950 uppercase tracking-widest border-l-4 border-indigo-500 pl-2">
-                Materyal ve Etkinlik Türlerine Göre Zaman Dağılımları
-              </h3>
-              <div className="grid grid-cols-1 gap-3">
-                {activityList.length > 0 ? (
-                  activityList.map((act, idx) => {
-                    const currentPct = Math.round((act.hours / maxActivityHours) * 100) || 0;
-                    return (
-                      <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-3 bg-gray-50/50 p-3 rounded-2xl border border-gray-100/50">
-                        <div className="sm:w-48 shrink-0">
-                          <span className="text-xs font-black text-purple-950 block">{act.type}</span>
-                          <span className="text-[9px] font-bold text-gray-400 uppercase">Ders Materyal Etkinliği</span>
-                        </div>
-                        <div className="flex-1 bg-gray-200 h-3.5 rounded-full overflow-hidden p-0.5 shadow-inner">
-                          <div 
-                            className="h-full bg-gradient-to-r from-purple-500 via-indigo-500 to-purple-600 rounded-full transition-all duration-700"
-                            style={{ width: `${currentPct}%` }}
-                          />
-                        </div>
-                        <div className="sm:w-28 text-right font-black text-xs text-purple-950 shrink-0">
-                          {act.hours} <span className="text-[9px] text-gray-400 font-normal">Saat Harcandı</span>
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="text-center p-4 text-gray-400 text-xs uppercase font-bold">Aktivite log verisi bulunamadı.</div>
-                )}
-              </div>
-            </div>
-
-            {/* LİDERLİK SIRALAMA TABLOSU */}
-            <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden text-left">
-              <div className="p-6 border-b bg-purple-50/20 flex justify-between items-center">
-                <h2 className="font-black text-purple-950 uppercase text-xs tracking-widest flex items-center gap-2 leading-none">
-                  ⏱️ Öğrenci Katılım ve Toplam Zaman Sıralama Listesi
-                </h2>
-                <button 
-                  onClick={exportZamanRaporPDF}
-                  className="bg-purple-950 hover:bg-purple-900 text-white font-black text-[10px] uppercase tracking-wider px-4 py-2 rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
-                >
-                  <FileText size={13} /> Süre Raporu PDF Al
-                </button>
-              </div>
-              <div className="overflow-x-auto custom-scrollbar">
-                <table className="w-full text-left border-collapse">
-                  <thead className="bg-purple-950 text-white text-[10px] font-black uppercase tracking-widest leading-none">
-                    <tr>
-                      <th className="p-5 w-24 text-center">SIRA</th>
-                      <th className="p-5">ÖĞRENCİ ADI SOYADI</th>
-                      <th className="p-5">DEPARTMAN / BÖLÜM</th>
-                      <th className="p-5 text-center w-48">TOPLAM AKTİF SÜRE</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 font-bold text-sm">
-                    {studentList.length > 0 ? (
-                      studentList.map((item, index) => (
-                        <tr key={index} className="hover:bg-purple-50/20 transition-all">
-                          <td className="p-4 text-center">
-                            <span className={`px-2.5 py-1 rounded-lg text-xs font-black ${
-                              index === 0 ? 'bg-amber-100 text-amber-700' :
-                              index === 1 ? 'bg-gray-100 text-gray-700' :
-                              index === 2 ? 'bg-orange-100 text-orange-700' : 'text-gray-500 bg-gray-50'
-                            }`}>
-                              #{item.rank}
-                            </span>
-                          </td>
-                          <td className="p-4 text-purple-950 font-black uppercase">{item.student}</td>
-                          <td className="p-4 text-gray-400 text-xs uppercase">
-                            {selectedDepartment ? String(selectedDepartment).toUpperCase() : "ÇOCUK GELİŞİMİ"}
-                          </td>
-                          <td className="p-4 text-center">
-                            <span className="bg-purple-600 text-white px-3 py-1.5 rounded-xl text-xs font-black shadow-sm">
-                              {item.time}
-                            </span>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={4} className="p-12 text-center text-gray-400 font-black uppercase text-xs tracking-widest">
-                          Zaman analiz listesi yükleniyor...
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </>
-        );
-      })()
-    )}
-
-  </div>
-)}
-{/* --- SEKME 5: SİSTEM ZAMAN ANALİTİĞİ VE ETKİNLİK DAĞILIMLARI --- */}
-{activeTab === 'time_analytics' && (
-  <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white p-6 rounded-3xl shadow-xl border border-gray-100 text-left">
       <div className="text-left leading-none">
         <h2 className="text-xl font-black text-purple-950 uppercase leading-none border-l-4 border-purple-600 pl-3">Sistem Zaman Yönetimi Verileri</h2>
@@ -1222,11 +1004,30 @@ const filteredBulkData = useMemo(() => bulkData, [bulkData]);
       </div>
     ) : (
       (() => {
-        const maxEngagement = systemTimeData?.max_engagement || { student: "Veri Yok", time: "0 Saat" };
-        const minEngagement = systemTimeData?.min_engagement || { student: "Veri Yok", time: "0 Saat" };
+        const rawMax = systemTimeData?.max_engagement || { student: "Veri Yok", time: "0 Saat" };
+        const rawMin = systemTimeData?.min_engagement || { student: "Veri Yok", time: "0 Saat" };
         const activityList = Array.isArray(systemTimeData?.activity_distribution) ? systemTimeData?.activity_distribution : [];
         const studentList = Array.isArray(systemTimeData?.raw_student_list) ? systemTimeData?.raw_student_list : [];
         const maxActivityHours = activityList.reduce((max, item) => item.hours > max ? item.hours : max, 1);
+
+        // --- SAAT ONDALIK DEĞERİNİ METNE ÇEVİREN AKILLI DÖNÜŞTÜRÜCÜ ---
+        // Örn: "6.07 Saat" veya 6.07 sayısal değerini -> "6 sa 4 dk" yapar
+        const convertHoursToText = (timeVal: string | number) => {
+          if (!timeVal || timeVal === "0 Saat") return "0 dk";
+          const numericHours = typeof timeVal === 'number' ? timeVal : parseFloat(String(timeVal).replace(/[^0-9.]/g, ''));
+          if (isNaN(numericHours) || numericHours === 0) return "0 dk";
+          
+          const totalMinutes = Math.round(numericHours * 60);
+          const hours = Math.floor(totalMinutes / 60);
+          const minutes = totalMinutes % 60;
+          
+          if (hours === 0) return `${minutes} dk`;
+          if (minutes === 0) return `${hours} sa`;
+          return `${hours} sa ${minutes} dk`;
+        };
+
+        const maxEngagement = { student: rawMax.student, time: convertHoursToText(rawMax.time) };
+        const minEngagement = { student: rawMin.student, time: convertHoursToText(rawMin.time) };
 
         const exportZamanRaporPDF = async () => {
           const { jsPDF } = await import('jspdf');
@@ -1237,10 +1038,17 @@ const filteredBulkData = useMemo(() => bulkData, [bulkData]);
           doc.setFont("Helvetica", "bold"); doc.setFillColor(67, 24, 108); doc.rect(0, 0, 210, 25, "F");
           doc.setTextColor(255, 255, 255); doc.setFontSize(13); doc.text("SISTEMDE AKTIF KATILIM VE CALISMA RAPORU", 30, 15);
           
-          const pdfRows = studentList.map((item) => [ `#${item.rank}`, fixTR(item.student), selectedDepartment ? fixTR(String(selectedDepartment).toUpperCase()) : "COCUK GELISIMI", fixTR(item.time) ]);
+          // PDF tablosuna da Türkçe karakter korumalı ve formatlanmış süreyi basıyoruz
+          const pdfRows = studentList.map((item) => [ 
+            `#${item.rank}`, 
+            fixTR(item.student), 
+            selectedDepartment ? fixTR(String(selectedDepartment).toUpperCase()) : "COCUK GELISIMI", 
+            fixTR(convertHoursToText(item.time)) 
+          ]);
+
           autoTable(doc, {
             startY: 35,
-            head: [[fixTR('Sıralama'), fixTR('Öğrenci Adı Soyadı'), fixTR('Bölüm / Departman'), fixTR('Toplam Aktif Süre')]],
+            head: [[fixTR('Sıralama'), fixTR('Ogrenci Adi Soyadi'), fixTR('Bolum / Departman'), fixTR('Toplam Aktif Sure')]],
             body: pdfRows,
             styles: { font: 'Helvetica', fontSize: 9 }
           });
@@ -1249,6 +1057,7 @@ const filteredBulkData = useMemo(() => bulkData, [bulkData]);
 
         return (
           <>
+            {/* EN AKTİF / EN AZ AKTİF ÖĞRENCİ KARTLARI */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-white p-6 rounded-3xl shadow-xl border-l-[10px] border-green-500 text-left flex flex-col justify-between min-h-[130px]">
                 <div><span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Sistemde En Uzun Süre Kalan Öğrenci</span><h3 className="text-lg font-black text-purple-950 uppercase truncate">{maxEngagement.student}</h3></div>
@@ -1260,6 +1069,7 @@ const filteredBulkData = useMemo(() => bulkData, [bulkData]);
               </div>
             </div>
 
+            {/* ETKİNLİK DAĞILIM BARLARI GRAFİĞİ */}
             <div className="bg-white p-6 rounded-3xl shadow-xl border border-gray-100 text-left space-y-4">
               <h3 className="text-xs font-black text-purple-950 uppercase tracking-widest border-l-4 border-indigo-500 pl-2">Materyal ve Etkinlik Türlerine Göre Zaman Dağılımları</h3>
               <div className="grid grid-cols-1 gap-3">
@@ -1269,13 +1079,14 @@ const filteredBulkData = useMemo(() => bulkData, [bulkData]);
                     <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-3 bg-gray-50/50 p-3 rounded-2xl border border-gray-100/50">
                       <div className="sm:w-48 shrink-0"><span className="text-xs font-black text-purple-950 block">{act.type}</span></div>
                       <div className="flex-1 bg-gray-200 h-3.5 rounded-full overflow-hidden p-0.5 shadow-inner"><div className="h-full bg-gradient-to-r from-purple-500 via-indigo-500 to-purple-600 rounded-full" style={{ width: `${currentPct}%` }} /></div>
-                      <div className="sm:w-28 text-right font-black text-xs text-purple-950 shrink-0">{act.hours} <span className="text-[9px] text-gray-400 font-normal">Saat</span></div>
+                      <div className="sm:w-28 text-right font-black text-xs text-purple-950 shrink-0">{convertHoursToText(act.hours)}</div>
                     </div>
                   );
                 })}
               </div>
             </div>
 
+            {/* LİDERLİK SIRALAMA TABLOSU */}
             <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden text-left">
               <div className="p-6 border-b bg-purple-50/20 flex justify-between items-center">
                 <h2 className="font-black text-purple-950 uppercase text-xs tracking-widest flex items-center gap-2 leading-none">⏱️ Öğrenci Katılım Sıralama Listesi</h2>
@@ -1291,7 +1102,7 @@ const filteredBulkData = useMemo(() => bulkData, [bulkData]);
                       <tr key={index} className="hover:bg-purple-50/20 transition-all">
                         <td className="p-4 text-center"><span className="px-2.5 py-1 rounded-lg text-xs font-black bg-gray-50 text-gray-500">#{item.rank}</span></td>
                         <td className="p-4 text-purple-950 font-black uppercase">{item.student}</td>
-                        <td className="p-4 text-center"><span className="bg-purple-600 text-white px-3 py-1.5 rounded-xl text-xs font-black">{item.time}</span></td>
+                        <td className="p-4 text-center"><span className="bg-purple-600 text-white px-3 py-1.5 rounded-xl text-xs font-black">{convertHoursToText(item.time)}</span></td>
                       </tr>
                     ))}
                   </tbody>
