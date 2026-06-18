@@ -1008,7 +1008,7 @@ const filteredBulkData = useMemo(() => bulkData, [bulkData]);
         const rawMin = systemTimeData?.min_engagement || { student: "Veri Yok", time: "0 Saat" };
         const activityList = Array.isArray(systemTimeData?.activity_distribution) ? systemTimeData?.activity_distribution : [];
         const studentList = Array.isArray(systemTimeData?.raw_student_list) ? systemTimeData?.raw_student_list : [];
-        const maxActivityHours = activityList.reduce((max, item) => item.hours > max ? item.hours : max, 1);
+       const maxActivityHours = activityList.reduce((max: number, item: any) => item.hours > max ? item.hours : max, 1);
 
         // --- SAAT ONDALIK DEĞERİNİ METNE ÇEVİREN AKILLI DÖNÜŞTÜRÜCÜ ---
         // Örn: "6.07 Saat" veya 6.07 sayısal değerini -> "6 sa 4 dk" yapar
