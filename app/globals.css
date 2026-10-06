@@ -109,3 +109,12 @@ main .max-w-5xl {
 form {
   animation: fadeIn 0.5s ease-out;
 }
+
+/* Scrollbar Gizleme (no-scrollbar) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
