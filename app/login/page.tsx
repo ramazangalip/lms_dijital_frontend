@@ -5,8 +5,9 @@ import api from '@/lib/api';
 import Link from 'next/link';
 import { jwtDecode } from 'jwt-decode';
 import { AxiosError } from 'axios';
-import { Eye, EyeOff, Info, X } from 'lucide-react';
+import { Eye, EyeOff, Info, X, PlayCircle } from 'lucide-react';
 import PwaInstallBanner from '@/components/common/PwaInstallBanner';
+import IntroVideoModal from '@/components/common/IntroVideoModal';
 
 interface CustomTokenPayload {
   is_teacher: boolean;
@@ -26,6 +27,7 @@ export default function LoginPage() {
   const [showInfo, setShowInfo] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [isIntroModalOpen, setIsIntroModalOpen] = useState(false);
   const router = useRouter();
   const infoRef = useRef<HTMLDivElement>(null);
 
@@ -63,6 +65,13 @@ export default function LoginPage() {
     }
     setCheckingAuth(false);
   }, [router]);
+
+  // Sayfaya ilk girildiğinde tanıtım videosu modalını aç
+  useEffect(() => {
+    if (!checkingAuth) {
+      setIsIntroModalOpen(true);
+    }
+  }, [checkingAuth]);
 
   // Dışarı tıklandığında bilgi penceresini kapat
   useEffect(() => {
@@ -288,7 +297,19 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="text-center text-xs sm:text-sm pt-4 leading-relaxed">
+        <div className="text-center text-xs sm:text-sm pt-4 space-y-3 leading-relaxed">
+          {/* Tanıtım Videosunu Tekrar İzle Butonu */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setIsIntroModalOpen(true)}
+              className="inline-flex items-center gap-2 text-primary font-bold text-sm sm:text-base hover:underline cursor-pointer transition-all active:scale-95"
+            >
+              <PlayCircle className="w-5 h-5 stroke-[2.2] text-primary shrink-0" />
+              <span>Tanıtım Videosunu Tekrar İzle</span>
+            </button>
+          </div>
+
           <p className="text-gray-600">
             Yardım mı Almak İstiyorsunuz?{" "}
             <Link href="/guide" className="font-bold text-primary hover:underline inline">
@@ -300,6 +321,12 @@ export default function LoginPage() {
 
       {/* PWA MOBİL UYGULAMA İNDİRME BANNERI (GİRİŞ EKRANININ HEMEN ALTINDA) */}
       <PwaInstallBanner />
+
+      {/* İLK GİRİŞ TANITIM VE KULLANIM VİDEOSU MODALI */}
+      <IntroVideoModal 
+        isOpen={isIntroModalOpen} 
+        onClose={() => setIsIntroModalOpen(false)} 
+      />
     </div>
   );
 }
