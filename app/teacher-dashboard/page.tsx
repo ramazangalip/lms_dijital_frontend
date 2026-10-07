@@ -326,7 +326,7 @@ export default function TeacherDashboard() {
     }
 
     try {
-      await api.post('/contents/manage/', payload);
+      await api.post('/contents/list/', payload);
       alert(`${weekNumber}. Hafta Başarıyla Kaydedildi!`);
       fetchWeekDetail(weekNumber);
     } catch (err) {

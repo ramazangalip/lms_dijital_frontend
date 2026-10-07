@@ -94,19 +94,15 @@ export default function LoginPage() {
       const res = await api.post('/users/login/', { email, password });
       const { access, refresh } = res.data;
 
+      // Tokenları her iki depolama alanına da güvenle yaz
+      localStorage.setItem('access_token', access);
+      localStorage.setItem('refresh_token', refresh);
+      sessionStorage.setItem('access_token', access);
+      sessionStorage.setItem('refresh_token', refresh);
+
       if (rememberMe) {
-        // Beni hatırla seçildiyse: 30 gün boyunca localStorage'da saklanır
-        localStorage.setItem('access_token', access);
-        localStorage.setItem('refresh_token', refresh);
         localStorage.setItem('remember_me', 'true');
-        sessionStorage.removeItem('access_token');
-        sessionStorage.removeItem('refresh_token');
       } else {
-        // Beni hatırla seçilmediyse: Tarayıcı kapatılınca sıfırlanan sessionStorage'da saklanır
-        sessionStorage.setItem('access_token', access);
-        sessionStorage.setItem('refresh_token', refresh);
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
         localStorage.removeItem('remember_me');
       }
 
