@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { jwtDecode } from 'jwt-decode';
 import { AxiosError } from 'axios';
 import { Eye, EyeOff, Info, X } from 'lucide-react';
+import PwaInstallBanner from '@/components/common/PwaInstallBanner';
 
 interface CustomTokenPayload {
   is_teacher: boolean;
@@ -164,7 +165,7 @@ export default function LoginPage() {
   );
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-white px-4 py-8">
       <div className="w-full max-w-sm space-y-8 rounded-xl border border-gray-100 p-6 sm:p-8 shadow-2xl">
         <div className="text-center">
           <h2 className="logo-text text-4xl text-primary font-bold">BİNGÖL</h2>
@@ -296,6 +297,9 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
+
+      {/* PWA MOBİL UYGULAMA İNDİRME BANNERI (GİRİŞ EKRANININ HEMEN ALTINDA) */}
+      <PwaInstallBanner />
     </div>
   );
 }
