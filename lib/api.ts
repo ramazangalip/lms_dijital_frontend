@@ -12,7 +12,7 @@ export const getApiBaseUrl = (): string => {
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
       return 'http://127.0.0.1:8000/api';
     }
-    return 'https://api.yapayzekadesteklisinif.com.tr/api';
+    return 'https://api.yapayzekadesteklidijitalsinif.com.tr/api';
   }
   return 'http://127.0.0.1:8000/api';
 };
