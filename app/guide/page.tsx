@@ -8,7 +8,7 @@ export default function GuidePage() {
   const [activeTab, setActiveTab] = useState<'guide' | 'extra' | 'mobile'>('guide');
 
   // URL Tanımlamaları
-  const guideVideoUrl = "https://www.youtube.com/embed/yeYMTkqG-ZE?si=yHJFj_ycQzpO34rw"; // 1. Video
+  const guideVideoUrl = "https://www.youtube.com/embed/yeYMTkqG-ZE?si=sm527TBydYz18Hrx"; // 1. Video
   const extraVideoUrl = "https://www.youtube.com/embed/5rCHzM0U4ds"; // 2. Video (Burayı değiştirirsin)
   const apkDownloadUrl = "https://drive.google.com/uc?export=download&id=1ezJVz7CgRQbxn5zyWZ6Lp9Sh8Ej9yoDz";
 
