@@ -338,21 +338,32 @@ export default function StudentMaterialViewer({
                       <span className="break-words">{q.question_text}</span>
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:pl-8 text-left">
-                      {q.options.map((opt) => (
-                        <button 
-                          key={opt.id} 
-                          type="button"
-                          onClick={() => opt.id && q.id && onSelectOption(q.id, opt.id)} 
-                          className={`p-4 rounded-2xl text-left text-[11px] font-bold border-2 transition-all flex items-center justify-between group min-h-[56px] ${
-                            selectedAnswers[q.id || 0] === opt.id 
-                              ? 'bg-primary border-primary text-white shadow-lg' 
-                              : 'bg-white border-gray-100 text-gray-500 hover:border-red-100'
-                          }`}
-                        >
-                          <span className="pr-2">{opt.option_text}</span>
-                          {selectedAnswers[q.id || 0] === opt.id && <ArrowRight size={14} className="shrink-0" />}
-                        </button>
-                      ))}
+                      {q.options.map((opt, oIdx) => {
+                        const optLetter = String.fromCharCode(65 + oIdx);
+                        const isSelected = selectedAnswers[q.id || 0] === opt.id;
+                        return (
+                          <button 
+                            key={opt.id || oIdx} 
+                            type="button"
+                            onClick={() => opt.id && q.id && onSelectOption(q.id, opt.id)} 
+                            className={`p-4 rounded-2xl text-left text-[11px] font-bold border-2 transition-all flex items-center justify-between group min-h-[56px] ${
+                              isSelected 
+                                ? 'bg-primary border-primary text-white shadow-lg scale-[1.01]' 
+                                : 'bg-white border-gray-100 text-gray-700 hover:border-primary/40 hover:bg-gray-50/50'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 pr-2 min-w-0">
+                              <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0 transition-colors ${
+                                isSelected ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500 group-hover:bg-primary/10 group-hover:text-primary'
+                              }`}>
+                                {optLetter}
+                              </span>
+                              <span className="break-words">{opt.option_text}</span>
+                            </div>
+                            {isSelected && <ArrowRight size={14} className="shrink-0" />}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}

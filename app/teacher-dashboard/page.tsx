@@ -9,7 +9,8 @@ import {
   StudentAnalytics, 
   BulkStudentData, 
   ChatbotAnalyticsResponse,
-  DepartmentItem 
+  DepartmentItem,
+  DepartmentSchedule 
 } from '@/components/types';
 
 import TeacherHeader, { TeacherActiveTab } from '@/components/teacher/TeacherHeader';
@@ -39,6 +40,8 @@ export default function TeacherDashboard() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [releaseDate, setReleaseDate] = useState(''); 
+  const [deactivationDate, setDeactivationDate] = useState('');
+  const [departmentSchedules, setDepartmentSchedules] = useState<DepartmentSchedule[]>([]); 
   
   const [introTitle, setIntroTitle] = useState('Genel Tanıtım ve Oryantasyon');
   const [introVideoUrl, setIntroVideoUrl] = useState('');
@@ -128,6 +131,38 @@ export default function TeacherDashboard() {
       });
   }, [selectedDepartment, activeTab]);
 
+// ISO DateTime formatını <input type="datetime-local"> formatına (YYYY-MM-DDTHH:mm) dönüştürür
+const formatToDatetimeLocal = (isoString?: string | null): string => {
+  if (!isoString) return '';
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(isoString)) {
+    return isoString;
+  }
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return '';
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  } catch {
+    return '';
+  }
+};
+
+// <input type="datetime-local"> değerini ISO string'e dönüştürür
+const formatToISO = (val?: string | null): string | null => {
+  if (!val) return null;
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return null;
+    return d.toISOString();
+  } catch {
+    return null;
+  }
+};
+
   // --- HAFTA DETAYI ÇEKME ---
   const fetchWeekDetail = useCallback(async (week: number) => {
     setFetchingWeek(true);
@@ -138,10 +173,23 @@ export default function TeacherDashboard() {
       setTitle(data.title || '');
       setDescription(data.description || '');
       
-      if (data.release_date) {
-        setReleaseDate(data.release_date.split('T')[0]);
+      setReleaseDate(formatToDatetimeLocal(data.release_date));
+      setDeactivationDate(formatToDatetimeLocal(data.deactivation_date));
+
+      if (data.department_schedules && data.department_schedules.length > 0) {
+        setDepartmentSchedules(data.department_schedules.map((s: any) => ({
+          department: s.department,
+          department_name: s.department_name,
+          release_date: formatToDatetimeLocal(s.release_date),
+          deactivation_date: formatToDatetimeLocal(s.deactivation_date)
+        })));
       } else {
-        setReleaseDate('');
+        setDepartmentSchedules(departments.map(d => ({
+          department: d.key,
+          department_name: d.name,
+          release_date: '',
+          deactivation_date: ''
+        })));
       }
       
       if (data.intro_video_url !== undefined) {
@@ -150,9 +198,12 @@ export default function TeacherDashboard() {
       }
       
       if (data.materials && data.materials.length > 0) {
-        setMaterials(data.materials);
+        setMaterials(data.materials.map((m: Material) => ({
+          ...m,
+          duration_seconds: m.duration_seconds ?? 120
+        })));
       } else {
-        setMaterials([{ content_type: 'video', embed_url: '', title: '', point_value: 10 }]);
+        setMaterials([{ content_type: 'video', embed_url: '', title: '', point_value: 1, duration_seconds: 120 }]);
       }
       
       setFlashcards(data.flashcards || []);
@@ -161,12 +212,19 @@ export default function TeacherDashboard() {
       setTitle('');
       setDescription('');
       setReleaseDate('');
-      setMaterials([{ content_type: 'video', embed_url: '', title: '', point_value: 10 }]);
+      setDeactivationDate('');
+      setDepartmentSchedules(departments.map(d => ({
+        department: d.key,
+        department_name: d.name,
+        release_date: '',
+        deactivation_date: ''
+      })));
+      setMaterials([{ content_type: 'video', embed_url: '', title: '', point_value: 1, duration_seconds: 120 }]);
       setFlashcards([]);
     } finally {
       setFetchingWeek(false);
     }
-  }, []);
+  }, [departments]);
 
   useEffect(() => {
     if (activeTab === 'content') {
@@ -210,7 +268,7 @@ export default function TeacherDashboard() {
 
   // --- MATERYAL YÖNETİMİ ---
   const addMaterialRow = () => {
-    setMaterials([...materials, { content_type: 'video', embed_url: '', title: '', point_value: 10 }]);
+    setMaterials([...materials, { content_type: 'video', embed_url: '', title: '', point_value: 1, duration_seconds: 120 }]);
   };
 
   const removeMaterialRow = (index: number) => {
@@ -233,6 +291,7 @@ export default function TeacherDashboard() {
                 { option_text: '', is_correct: true },
                 { option_text: '', is_correct: false },
                 { option_text: '', is_correct: false },
+                { option_text: '', is_correct: false },
                 { option_text: '', is_correct: false }
               ]
             }
@@ -253,6 +312,7 @@ export default function TeacherDashboard() {
         question_text: '',
         options: [
           { option_text: '', is_correct: true },
+          { option_text: '', is_correct: false },
           { option_text: '', is_correct: false },
           { option_text: '', is_correct: false },
           { option_text: '', is_correct: false }
@@ -294,6 +354,50 @@ export default function TeacherDashboard() {
     setFlashcards(updated);
   };
 
+  const handleUpdateDepartmentSchedule = (deptKey: string, field: 'release_date' | 'deactivation_date', val: string) => {
+    setDepartmentSchedules(prev => {
+      const existingIndex = prev.findIndex(s => s.department === deptKey);
+      if (existingIndex >= 0) {
+        const copy = [...prev];
+        copy[existingIndex] = {
+          ...copy[existingIndex],
+          [field]: val || null
+        };
+        return copy;
+      } else {
+        const deptObj = departments.find(d => d.key === deptKey);
+        return [
+          ...prev,
+          {
+            department: deptKey,
+            department_name: deptObj?.name || deptKey,
+            release_date: field === 'release_date' ? (val || null) : null,
+            deactivation_date: field === 'deactivation_date' ? (val || null) : null,
+          }
+        ];
+      }
+    });
+  };
+
+  const handleApplyDatesToAllDepartments = (sourceRelDate?: string, sourceDeactDate?: string) => {
+    const rel = sourceRelDate !== undefined ? sourceRelDate : releaseDate;
+    const deact = sourceDeactDate !== undefined ? sourceDeactDate : deactivationDate;
+    if (!rel && !deact) {
+      alert("Lütfen önce 'Erişim Tarihi (Aktif)' veya 'Kapanış Tarihi (Pasif)' alanlarından en az birini doldurunuz.");
+      return;
+    }
+    setDepartmentSchedules(prev => {
+      const baseList = departments.length > 0 ? departments : prev.map(p => ({ key: p.department, name: p.department_name || p.department }));
+      return baseList.map(d => ({
+        department: d.key,
+        department_name: d.name,
+        release_date: rel || null,
+        deactivation_date: deact || null
+      }));
+    });
+    alert("Seçilen tarihler tüm bölümlere başarıyla uygulandı.");
+  };
+
   // --- FORMU KAYDETME ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -303,20 +407,37 @@ export default function TeacherDashboard() {
       week_number: Number(weekNumber),
       title,
       description,
-      release_date: releaseDate ? `${releaseDate}T00:00:00Z` : null,
+      release_date: formatToISO(releaseDate),
+      deactivation_date: formatToISO(deactivationDate),
+      department_schedules: departmentSchedules.map(s => ({
+        department: s.department,
+        release_date: formatToISO(s.release_date),
+        deactivation_date: formatToISO(s.deactivation_date)
+      })),
       materials: materials.map(m => {
         const matPayload: any = {
           content_type: m.content_type,
           title: m.title,
           embed_url: m.embed_url || "https://example.com",
-          point_value: Number(m.point_value) || 10
+          point_value: Number(m.point_value) !== undefined && !isNaN(Number(m.point_value)) ? Number(m.point_value) : 1,
+          duration_seconds: (m.content_type === 'video' || m.content_type === 'podcast')
+            ? (m.duration_seconds !== undefined && !isNaN(Number(m.duration_seconds)) ? Number(m.duration_seconds) : 120)
+            : null
         };
+        if (m.id) {
+          matPayload.id = m.id;
+        }
         if (m.content_type === 'form' && m.quiz) {
           matPayload.quiz = m.quiz;
         }
         return matPayload;
       }),
-      flashcards: flashcards.filter(f => f.question && f.answer)
+      flashcards: flashcards.filter(f => f.question && f.answer).map((f, idx) => ({
+        id: f.id,
+        question: f.question,
+        answer: f.answer,
+        order: f.order ?? idx
+      }))
     };
 
     if (Number(weekNumber) === 1) {
@@ -502,6 +623,12 @@ export default function TeacherDashboard() {
             onTitleChange={setTitle}
             releaseDate={releaseDate}
             onReleaseDateChange={setReleaseDate}
+            deactivationDate={deactivationDate}
+            onDeactivationDateChange={setDeactivationDate}
+            departments={departments}
+            departmentSchedules={departmentSchedules}
+            onUpdateDepartmentSchedule={handleUpdateDepartmentSchedule}
+            onApplyToAllDepartments={handleApplyDatesToAllDepartments}
             introTitle={introTitle}
             onIntroTitleChange={setIntroTitle}
             introVideoUrl={introVideoUrl}

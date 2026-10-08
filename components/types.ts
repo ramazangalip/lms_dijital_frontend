@@ -30,7 +30,16 @@ export interface Material {
   embed_url: string;
   title: string;
   point_value?: number;
+  duration_seconds?: number;
   quiz?: Quiz;
+}
+
+export interface DepartmentSchedule {
+  id?: number;
+  department: string;
+  department_name?: string;
+  release_date: string | null;
+  deactivation_date: string | null;
 }
 
 export interface WeeklyContent {
@@ -42,6 +51,8 @@ export interface WeeklyContent {
   intro_description?: string;
   intro_video_url?: string;
   release_date?: string;
+  deactivation_date?: string;
+  department_schedules?: DepartmentSchedule[];
   is_locked: boolean;
   lock_reason?: string;
   is_intro_watched: boolean;
@@ -189,12 +200,9 @@ export interface DepartmentItem {
 }
 
 export const DEPARTMENT_MAP: Record<string, string> = {
-  'ilahiyat': 'İlahiyat',
-  'isg': 'İş Sağlığı Ve Güvenliği',
-  'beslenmevediyetetik': 'Beslenme Ve Diyetetik',
-  'hemsirelik': 'Hemşirelik',
-  'saglikyonetimi': 'Sağlık Yönetimi',
-  'webtasarimvekodlama': 'Web Tasarım Ve Kodlama'
+  'siyasetbilimivekamuyonetimi': 'Siyaset Bilimi Ve Kamu Yönetimi',
+  'turkdiliveedebiyati': 'Türk Dili Ve Edebiyatı',
+  'matematik': 'Matematik'
 };
 
 export const getDeptName = (deptKey: string) => {

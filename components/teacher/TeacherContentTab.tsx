@@ -2,9 +2,9 @@
 import React from 'react';
 import { 
   RefreshCcw, ShieldCheck, Type, PlayCircle, ListChecks, Plus, Award, 
-  Trash2, Check, BookOpen, Download, Calendar, Save 
+  Trash2, Check, BookOpen, Download, Calendar, Save, Filter, Clock 
 } from 'lucide-react';
-import { Material, Flashcard } from '@/components/types';
+import { Material, Flashcard, DepartmentSchedule, DepartmentItem } from '@/components/types';
 
 interface TeacherContentTabProps {
   weekNumber: number;
@@ -13,6 +13,12 @@ interface TeacherContentTabProps {
   onTitleChange: (title: string) => void;
   releaseDate: string;
   onReleaseDateChange: (date: string) => void;
+  deactivationDate: string;
+  onDeactivationDateChange: (date: string) => void;
+  departments: DepartmentItem[];
+  departmentSchedules: DepartmentSchedule[];
+  onUpdateDepartmentSchedule: (deptKey: string, field: 'release_date' | 'deactivation_date', val: string) => void;
+  onApplyToAllDepartments: (relDate?: string, deactDate?: string) => void;
   introTitle: string;
   onIntroTitleChange: (val: string) => void;
   introVideoUrl: string;
@@ -44,6 +50,12 @@ export default function TeacherContentTab({
   onTitleChange,
   releaseDate,
   onReleaseDateChange,
+  deactivationDate,
+  onDeactivationDateChange,
+  departments,
+  departmentSchedules,
+  onUpdateDepartmentSchedule,
+  onApplyToAllDepartments,
   introTitle,
   onIntroTitleChange,
   introVideoUrl,
@@ -67,6 +79,17 @@ export default function TeacherContentTab({
   loading,
   fetchingWeek
 }: TeacherContentTabProps) {
+  // Seçili bölümün tarihlerini yönetmek için state
+  const [selectedDeptForSchedule, setSelectedDeptForSchedule] = React.useState<string>('siyasetbilimivekamuyonetimi');
+
+  React.useEffect(() => {
+    if (departments.length > 0 && !departments.some(d => d.key === selectedDeptForSchedule)) {
+      setSelectedDeptForSchedule(departments[0].key);
+    }
+  }, [departments, selectedDeptForSchedule]);
+
+  const currentSchedule = departmentSchedules.find(s => s.department === selectedDeptForSchedule);
+
   return (
     <form onSubmit={onSubmit} className="space-y-8 animate-in fade-in slide-in-from-top-4 duration-500 text-left">
       <div className="bg-white p-5 md:p-10 rounded-3xl md:rounded-[2.5rem] shadow-2xl border border-gray-100 relative overflow-hidden text-left leading-normal">
@@ -79,23 +102,26 @@ export default function TeacherContentTab({
           </div>
         )}
         
-        {/* Üst Hafta / Başlık / Tarih Bilgisi */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10 text-left">
-          <div className="md:col-span-1 text-left leading-none">
+        {/* Üst Form Başlık ve Tarih Alanları (Birebir Tasarım) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-5 mb-6 text-left">
+          {/* Düzenlenen Hafta */}
+          <div className="lg:col-span-2 text-left leading-none">
             <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest text-left leading-none">
               Düzenlenen Hafta
             </label>
             <select 
               value={weekNumber} 
               onChange={(e) => onWeekNumberChange(Number(e.target.value))} 
-              className="w-full p-4 rounded-2xl border-2 border-gray-100 bg-gray-50 text-black font-bold outline-none focus:border-red-500 transition-colors text-sm shadow-inner leading-none text-left"
+              className="w-full p-4 rounded-2xl border-2 border-gray-100 bg-gray-50 text-black font-bold outline-none focus:border-red-500 transition-colors text-sm shadow-inner leading-none text-left cursor-pointer"
             >
               {Array.from({ length: 14 }, (_, i) => i + 1).map(n => (
                 <option key={n} value={n}>{n}. Hafta</option>
               ))}
             </select>
           </div>
-          <div className="md:col-span-2 text-left leading-none">
+
+          {/* Haftalık Konu Başlığı */}
+          <div className="lg:col-span-4 text-left leading-none">
             <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest text-left leading-none">
               Haftalık Konu Başlığı
             </label>
@@ -108,17 +134,69 @@ export default function TeacherContentTab({
               placeholder="Haftanın ana başlığını giriniz..." 
             />
           </div>
-          <div className="md:col-span-1 text-left leading-none">
+
+          {/* TARİH İÇİN BÖLÜM */}
+          <div className="lg:col-span-2 text-left leading-none">
+            <label className="flex items-center gap-1.5 text-[10px] font-black text-[#ce1212] uppercase mb-2 tracking-widest text-left leading-none">
+              <Filter size={12} className="text-[#ce1212]" /> TARİH İÇİN BÖLÜM
+            </label>
+            <select 
+              value={selectedDeptForSchedule} 
+              onChange={(e) => setSelectedDeptForSchedule(e.target.value)} 
+              className="w-full p-4 rounded-2xl border-2 border-gray-100 bg-gray-50 text-black font-bold outline-none focus:border-red-500 transition-colors text-sm shadow-inner leading-none text-left cursor-pointer"
+            >
+              {departments.map(d => (
+                <option key={d.key} value={d.key}>
+                  📍 {d.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* ERİŞİM TARİHİ (AKTİF) */}
+          <div className="lg:col-span-2 text-left leading-none">
             <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest text-left leading-none">
-              Erişim Tarihi (Kilit)
+              ERİŞİM TARİHİ (AKTİF)
             </label>
             <input 
-              type="date" 
-              value={releaseDate} 
-              onChange={(e) => onReleaseDateChange(e.target.value)} 
-              className="w-full p-4 rounded-2xl border-2 border-gray-100 bg-gray-50 font-bold outline-none focus:border-red-500 shadow-inner leading-none text-left" 
+              type="datetime-local" 
+              value={currentSchedule?.release_date || ''} 
+              onChange={(e) => onUpdateDepartmentSchedule(selectedDeptForSchedule, 'release_date', e.target.value)} 
+              className="w-full p-3.5 rounded-2xl border-2 border-gray-100 bg-gray-50 font-bold outline-none focus:border-red-500 shadow-inner leading-none text-left text-xs sm:text-sm" 
             />
           </div>
+
+          {/* KAPANIŞ TARİHİ (PASİF) */}
+          <div className="lg:col-span-2 text-left leading-none">
+            <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest text-left leading-none">
+              KAPANIŞ TARİHİ (PASİF)
+            </label>
+            <input 
+              type="datetime-local" 
+              value={currentSchedule?.deactivation_date || ''} 
+              onChange={(e) => onUpdateDepartmentSchedule(selectedDeptForSchedule, 'deactivation_date', e.target.value)} 
+              className="w-full p-3.5 rounded-2xl border-2 border-gray-100 bg-gray-50 font-bold outline-none focus:border-red-500 shadow-inner leading-none text-left text-xs sm:text-sm" 
+            />
+          </div>
+        </div>
+
+        {/* Bölüm Takvimi Hızlı Barı & Tüm Bölümlere Kopyalama */}
+        <div className="mb-10 p-4 bg-gray-50/80 rounded-2xl border border-gray-200 flex flex-wrap items-center justify-between gap-3 text-left">
+          <div className="flex items-center gap-2 text-xs text-gray-600 font-bold">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#ce1212] shrink-0"></span>
+            <span>
+              Şu an <strong className="text-black uppercase tracking-tight">{departments.find(d => d.key === selectedDeptForSchedule)?.name || selectedDeptForSchedule}</strong> bölümünün tarihleri görüntüleniyor/düzenleniyor.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => onApplyToAllDepartments(currentSchedule?.release_date || '', currentSchedule?.deactivation_date || '')}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-[#ce1212] text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-sm shrink-0"
+            title="Seçili bölümün tarihlerini tüm diğer bölümlere de tek tıkla uygular"
+          >
+            <Calendar size={13} />
+            BU TARİHLERİ TÜM BÖLÜMLERE KOPYALA
+          </button>
         </div>
 
         {/* 1. Hafta ise Oryantasyon Videosu Ayarları */}
@@ -230,6 +308,21 @@ export default function TeacherContentTab({
                     </div>
                   )}
 
+                  {(mat.content_type === 'video' || mat.content_type === 'podcast') && (
+                    <div className="w-full lg:w-32 shrink-0 flex items-center gap-1.5 bg-white p-1 rounded-xl border border-gray-100 shadow-sm text-left">
+                      <Clock size={14} className="text-blue-500 ml-1.5 shrink-0 text-left" />
+                      <input 
+                        type="number" 
+                        min="0"
+                        placeholder="120" 
+                        className="w-full p-2 text-xs font-black text-secondary outline-none leading-none bg-transparent text-left" 
+                        value={mat.duration_seconds ?? 120} 
+                        onChange={(e) => onUpdateMaterial(mIndex, 'duration_seconds', e.target.value === '' ? '' : parseInt(e.target.value) || 0)} 
+                      />
+                      <span className="text-[10px] font-bold text-gray-400 mr-2 shrink-0">sn</span>
+                    </div>
+                  )}
+
                   {mat.content_type !== 'form' && (
                     <div className="w-full flex-[1.5] leading-none text-left">
                       <input 
@@ -281,32 +374,36 @@ export default function TeacherContentTab({
                               onChange={(e) => onUpdateQuestionText(mIndex, qIndex, e.target.value)} 
                             />
                           </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:pl-11 text-left">
-                            {q.options.map((opt, oIndex) => (
-                              <div 
-                                key={oIndex} 
-                                className={`flex items-center gap-3 p-2 rounded-xl border transition-all ${
-                                  opt.is_correct ? 'bg-green-50 border-green-500' : 'bg-white border-gray-100'
-                                }`}
-                              >
-                                <button 
-                                  type="button" 
-                                  onClick={() => onSetCorrectOption(mIndex, qIndex, oIndex)} 
-                                  className={`w-5 h-5 rounded flex items-center justify-center shrink-0 shadow-sm ${
-                                    opt.is_correct ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-300'
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:pl-11 text-left">
+                            {q.options.map((opt, oIndex) => {
+                              const optLetter = String.fromCharCode(65 + oIndex);
+                              return (
+                                <div 
+                                  key={oIndex} 
+                                  className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all ${
+                                    opt.is_correct ? 'bg-green-50 border-green-500 ring-1 ring-green-500' : 'bg-white border-gray-200 hover:border-gray-300'
                                   }`}
                                 >
-                                  <Check size={12} />
-                                </button>
-                                <input 
-                                  type="text" 
-                                  placeholder="Şık içeriği..." 
-                                  className="flex-1 bg-transparent text-[10px] font-bold outline-none" 
-                                  value={opt.option_text} 
-                                  onChange={(e) => onUpdateOption(mIndex, qIndex, oIndex, e.target.value)} 
-                                />
-                              </div>
-                            ))}
+                                  <button 
+                                    type="button" 
+                                    onClick={() => onSetCorrectOption(mIndex, qIndex, oIndex)} 
+                                    className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 font-black text-[10px] shadow-sm transition-all ${
+                                      opt.is_correct ? 'bg-green-500 text-white shadow-green-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                    }`}
+                                    title={opt.is_correct ? "Doğru Cevap" : "Doğru Cevap Olarak Seç"}
+                                  >
+                                    {optLetter}
+                                  </button>
+                                  <input 
+                                    type="text" 
+                                    placeholder={`${optLetter} şıkkı metni...`} 
+                                    className="flex-1 bg-transparent text-[11px] font-bold outline-none text-slate-800" 
+                                    value={opt.option_text} 
+                                    onChange={(e) => onUpdateOption(mIndex, qIndex, oIndex, e.target.value)} 
+                                  />
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       ))}

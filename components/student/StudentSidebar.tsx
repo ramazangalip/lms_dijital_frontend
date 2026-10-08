@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
 import { 
-  X, Video, Lock, CheckCircle2, ChevronRight, AlertCircle, LogOut 
+  X, Video, Lock, CheckCircle2, ChevronRight, LogOut 
 } from 'lucide-react';
 import { WeeklyContent } from '@/components/types';
 
@@ -73,7 +73,6 @@ export default function StudentSidebar({
           const isFinished = weekData?.is_completed;
           const introLocked = !introWatched;
           const isWeekLocked = weekData?.is_locked || introLocked;
-          const lockReason = weekData?.lock_reason || (introLocked ? "Önce tanıtım videosunu izlemelisiniz." : "");
 
           return (
             <div key={`sidebar-week-wrapper-${num}`} className="relative group">
@@ -85,7 +84,7 @@ export default function StudentSidebar({
                   isActive 
                     ? 'bg-primary border-primary text-white shadow-lg' 
                     : isWeekLocked 
-                      ? 'bg-gray-900 border-gray-800 text-gray-600 cursor-not-allowed opacity-40' 
+                      ? 'bg-gray-900/90 border-gray-800 text-gray-400 cursor-not-allowed' 
                       : weekData 
                         ? 'bg-gray-800/50 border-gray-700 text-gray-300 hover:bg-gray-700' 
                         : 'bg-transparent border-dashed border-gray-700 text-gray-700 opacity-20'
@@ -93,35 +92,30 @@ export default function StudentSidebar({
               >
                 <div className="flex items-center gap-3 text-left">
                   {isWeekLocked ? (
-                    <Lock size={14} className="text-gray-600" />
+                    <Lock size={14} className="text-gray-500 opacity-50 shrink-0" />
                   ) : isFinished ? (
-                    <CheckCircle2 size={16} className="text-green-400" />
+                    <CheckCircle2 size={16} className="text-green-400 shrink-0" />
                   ) : (
-                    <span className="text-[10px] font-bold">{num < 10 ? `0${num}` : num}</span>
+                    <span className="text-[10px] font-bold shrink-0">{num < 10 ? `0${num}` : num}</span>
                   )}
                   <div className="text-left leading-tight">
-                    <p className="text-xs font-semibold">Hafta {num}</p>
+                    <p className={`text-xs font-semibold ${isWeekLocked ? 'text-gray-500 opacity-60' : 'text-white'}`}>
+                      Hafta {num}
+                    </p>
                     {weekData && !isWeekLocked && (
                       <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mt-0.5">
                         %{weekData.progress || 0} TAMAMLANDI
                       </p>
                     )}
-                    {isWeekLocked && weekData && (
-                      <p className="text-[7px] text-red-500 font-bold uppercase mt-0.5">KİLİTLİ</p>
+                    {isWeekLocked && (
+                      <p className="text-[8px] text-red-500 font-black uppercase tracking-widest mt-0.5">
+                        KİLİTLİ
+                      </p>
                     )}
                   </div>
                 </div>
                 {weekData && !isWeekLocked && <ChevronRight size={12} className="opacity-40" />}
               </button>
-
-              {isWeekLocked && weekData && (
-                <div className="hidden group-hover:block absolute left-full ml-2 top-0 w-48 bg-black text-white text-[9px] p-2 rounded-lg z-[110] shadow-xl border border-gray-700 animate-in fade-in slide-in-from-left-1">
-                  <p className="font-bold flex items-center gap-1 text-red-400 uppercase mb-1">
-                    <AlertCircle size={10} /> Erişim Engellendi
-                  </p>
-                  {lockReason}
-                </div>
-              )}
             </div>
           );
         })}

@@ -149,21 +149,77 @@ export default function StudentDashboard() {
 
   const handleCompleteMaterial = async (materialId: number | string) => {
     if (!materialId) return;
+    const matIdStr = String(materialId);
+
+    // 1. Optimistic Update: Tik işaretini ve yüzdeyi beklemeden ANINDA güncelle
+    setCompletedMaterials(prev => prev.includes(matIdStr) ? prev : [...prev, matIdStr]);
+
+    setContents(prevContents => prevContents.map(week => {
+      const hasMat = week.materials?.some(m => String(m.id) === matIdStr);
+      if (!hasMat) return week;
+      const totalMats = week.materials.length;
+      const doneCount = week.materials.filter(m => String(m.id) === matIdStr || completedMaterials.includes(String(m.id))).length;
+      const newPercentage = totalMats > 0 ? Math.round((doneCount / totalMats) * 100) : 0;
+      return {
+        ...week,
+        progress: newPercentage,
+        is_completed: newPercentage >= 100
+      };
+    }));
+
+    setSelectedWeek(prevWeek => {
+      if (!prevWeek) return null;
+      const hasMat = prevWeek.materials?.some(m => String(m.id) === matIdStr);
+      if (!hasMat) return prevWeek;
+      const totalMats = prevWeek.materials.length;
+      const doneCount = prevWeek.materials.filter(m => String(m.id) === matIdStr || completedMaterials.includes(String(m.id))).length;
+      const newPercentage = totalMats > 0 ? Math.round((doneCount / totalMats) * 100) : 0;
+      return {
+        ...prevWeek,
+        progress: newPercentage,
+        is_completed: newPercentage >= 100
+      };
+    });
+
+    if (watchTimerRef.current) clearInterval(watchTimerRef.current);
+    watchTimeInternalRef.current = 0; 
+    setWatchTime(0);
+
     try {
-      const res = await api.post('contents/complete-material/', { material_id: String(materialId) });
+      const res = await api.post('/contents/complete-material/', { material_id: matIdStr });
       if (res.data.status === "success") {
         if (res.data.new_points_earned > 0) {
           setPointsEarned({ show: true, amount: res.data.new_points_earned });
           setUserTotalPoints(res.data.total_points);
           setTimeout(() => setPointsEarned({ show: false, amount: 0 }), 5000);
         }
+
+        if (res.data.current_percentage !== undefined) {
+          const exactPercent = Math.round(res.data.current_percentage);
+          setContents(prevContents => prevContents.map(week => {
+            const hasMat = week.materials?.some(m => String(m.id) === matIdStr);
+            if (!hasMat) return week;
+            return {
+              ...week,
+              progress: exactPercent,
+              is_completed: exactPercent >= 100
+            };
+          }));
+          setSelectedWeek(prevWeek => {
+            if (!prevWeek) return null;
+            const hasMat = prevWeek.materials?.some(m => String(m.id) === matIdStr);
+            if (!hasMat) return prevWeek;
+            return {
+              ...prevWeek,
+              progress: exactPercent,
+              is_completed: exactPercent >= 100
+            };
+          });
+        }
       }
-      if (watchTimerRef.current) clearInterval(watchTimerRef.current);
-      watchTimeInternalRef.current = 0; 
-      setWatchTime(0);
-      await fetchContents(true);
     } catch (err) { 
       console.error("Tamamlama hatası."); 
+      await fetchContents(true);
     }
   };
 
@@ -208,6 +264,36 @@ export default function StudentDashboard() {
       return; 
     }
     setQuizSubmitting(true);
+    const quizMatIdStr = String(activeMaterial.id);
+
+    // Optimistic Update: Sınav tikini ve yüzdesini hemen güncelle
+    setCompletedMaterials(prev => prev.includes(quizMatIdStr) ? prev : [...prev, quizMatIdStr]);
+    setContents(prevContents => prevContents.map(week => {
+      const hasMat = week.materials?.some(m => String(m.id) === quizMatIdStr);
+      if (!hasMat) return week;
+      const totalMats = week.materials.length;
+      const doneCount = week.materials.filter(m => String(m.id) === quizMatIdStr || completedMaterials.includes(String(m.id))).length;
+      const newPercentage = totalMats > 0 ? Math.round((doneCount / totalMats) * 100) : 0;
+      return {
+        ...week,
+        progress: newPercentage,
+        is_completed: newPercentage >= 100
+      };
+    }));
+    setSelectedWeek(prevWeek => {
+      if (!prevWeek) return null;
+      const hasMat = prevWeek.materials?.some(m => String(m.id) === quizMatIdStr);
+      if (!hasMat) return prevWeek;
+      const totalMats = prevWeek.materials.length;
+      const doneCount = prevWeek.materials.filter(m => String(m.id) === quizMatIdStr || completedMaterials.includes(String(m.id))).length;
+      const newPercentage = totalMats > 0 ? Math.round((doneCount / totalMats) * 100) : 0;
+      return {
+        ...prevWeek,
+        progress: newPercentage,
+        is_completed: newPercentage >= 100
+      };
+    });
+
     try {
       const answers = Object.entries(selectedAnswers).map(([qId, oId]) => ({ 
         question_id: String(qId), 
@@ -320,11 +406,14 @@ export default function StudentDashboard() {
   useEffect(() => {
     if (watchTimerRef.current) clearInterval(watchTimerRef.current);
     if (!isIntroView && activeMaterial && (activeMaterial.content_type === 'video' || activeMaterial.content_type === 'podcast') && !completedMaterials.includes(String(activeMaterial.id)) && introStatus.isWatched) {
+      const requiredDuration = (activeMaterial.duration_seconds && activeMaterial.duration_seconds > 0)
+        ? activeMaterial.duration_seconds
+        : 120;
       watchTimeInternalRef.current = 0;
       watchTimerRef.current = setInterval(() => {
         watchTimeInternalRef.current += 1; 
         setWatchTime(watchTimeInternalRef.current);
-        if (watchTimeInternalRef.current >= materialWatchThreshold) { 
+        if (watchTimeInternalRef.current >= requiredDuration) { 
           if (activeMaterialRef.current?.id !== undefined) handleCompleteMaterial(activeMaterialRef.current.id); 
         }
       }, 1000);
@@ -332,7 +421,7 @@ export default function StudentDashboard() {
     return () => { 
       if (watchTimerRef.current) clearInterval(watchTimerRef.current); 
     };
-  }, [activeMaterial?.id, isIntroView, completedMaterials.length, introStatus.isWatched]);
+  }, [activeMaterial?.id, activeMaterial?.duration_seconds, isIntroView, completedMaterials.length, introStatus.isWatched]);
 
   const handleWeekSelection = (weekData: WeeklyContent) => {
     if (weekData.is_locked) return;

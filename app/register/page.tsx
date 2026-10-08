@@ -23,12 +23,9 @@ export default function RegisterPage() {
 
 
   const departments = [
-    { id: 'ilahiyat', name: 'İlahiyat' },
-    { id: 'isg', name: 'İş Sağlığı Ve Güvenliği' },
-    { id: 'saglikyonetimi', name: 'Sağlık Yönetimi' },
-    { id: 'beslenmevediyetetik', name: 'Beslenme Ve Diyetetik' },
-    { id: 'hemsirelik', name: 'Hemşirelik' },
-    { id: 'webtasarimvekodlama', name: 'Web Tasarım Ve Kodlama' }
+    { id: 'siyasetbilimivekamuyonetimi', name: 'Siyaset Bilimi Ve Kamu Yönetimi' },
+    { id: 'turkdiliveedebiyati', name: 'Türk Dili Ve Edebiyatı' },
+    { id: 'matematik', name: 'Matematik' }
   ];
 
   const handleSendOTP = async () => {
