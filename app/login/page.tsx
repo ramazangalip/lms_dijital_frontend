@@ -5,7 +5,7 @@ import api from '@/lib/api';
 import Link from 'next/link';
 import { jwtDecode } from 'jwt-decode';
 import { AxiosError } from 'axios';
-import { Eye, EyeOff, Info, X, PlayCircle } from 'lucide-react';
+import { Eye, EyeOff, Info, X, PlayCircle, AlertCircle, ExternalLink } from 'lucide-react';
 import PwaInstallBanner from '@/components/common/PwaInstallBanner';
 import IntroVideoModal from '@/components/common/IntroVideoModal';
 
@@ -26,6 +26,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [isIntroModalOpen, setIsIntroModalOpen] = useState(false);
   const router = useRouter();
@@ -89,6 +90,7 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMessage(null);
     
     try {
       const res = await api.post('/users/login/', { email, password });
@@ -116,8 +118,13 @@ export default function LoginPage() {
       }
       
     } catch (err) {
-      const error = err as AxiosError<{ detail?: string }>;
-      alert(error.response?.data?.detail || "Giriş başarısız! Bilgilerinizi kontrol edin.");
+      const error = err as AxiosError<{ detail?: string; error?: string; non_field_errors?: string[] }>;
+      const detailMsg = error.response?.data?.detail 
+        || error.response?.data?.error 
+        || (error.response?.data?.non_field_errors && error.response?.data?.non_field_errors[0])
+        || "Email veya şifreniz yanlıştır.";
+      
+      setErrorMessage(detailMsg);
     } finally {
       setLoading(false);
     }
@@ -177,6 +184,42 @@ export default function LoginPage() {
           <h3 className="logo-text text-2xl text-gray-800 font-bold uppercase">Üniversitesi</h3>
           <p className="mt-4 font-roboto text-gray-600 font-medium">LMS Giriş Sistemi</p>
         </div>
+
+        {/* KURUMSAL KIRMIZI BEYAZ UYARI KUTUSU */}
+        {errorMessage && (
+          <div className="bg-red-50 border-2 border-[#ce1212] text-[#ce1212] p-4 rounded-2xl flex items-start gap-3 shadow-md animate-in fade-in slide-in-from-top-2 duration-300 text-left">
+            <div className="bg-[#ce1212] text-white p-1.5 rounded-xl shrink-0 mt-0.5 shadow-xs">
+              <AlertCircle className="w-4 h-4 stroke-[2.5]" />
+            </div>
+            <div className="flex-1 text-left leading-snug">
+              <p className="text-[10px] font-black uppercase tracking-wider text-[#ce1212]/80">GİRİŞ UYARISI</p>
+              <p className="text-xs font-black text-[#ce1212] mt-0.5 leading-normal">
+                {errorMessage}
+              </p>
+              {errorMessage.includes("yapayzekadesteklisinif.com.tr") && (
+                <div className="mt-2.5">
+                  <a 
+                    href="https://yapayzekadesteklisinif.com.tr" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-[11px] font-black text-white bg-[#ce1212] hover:bg-black px-3.5 py-1.5 rounded-xl transition-all shadow-sm active:scale-95"
+                  >
+                    <span>Siteye Git</span>
+                    <ExternalLink size={12} className="stroke-[2.5]" />
+                  </a>
+                </div>
+              )}
+            </div>
+            <button 
+              type="button" 
+              onClick={() => setErrorMessage(null)} 
+              className="text-red-400 hover:text-[#ce1212] hover:bg-red-100 p-1 rounded-lg transition-colors shrink-0"
+              aria-label="Kapat"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        )}
 
         <form onSubmit={handleLogin} className="mt-8 space-y-6">
           <div className="space-y-4">
