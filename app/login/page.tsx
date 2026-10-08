@@ -193,9 +193,23 @@ export default function LoginPage() {
             </div>
             <div className="flex-1 text-left leading-snug">
               <p className="text-[10px] font-black uppercase tracking-wider text-[#ce1212]/80">GİRİŞ UYARISI</p>
-              <p className="text-xs font-black text-[#ce1212] mt-0.5 leading-normal">
-                {errorMessage}
-              </p>
+              <div className="text-xs font-black text-[#ce1212] mt-0.5 leading-normal">
+                {errorMessage.includes("yapayzekadesteklisinif.com.tr") ? (
+                  <span>
+                    <a 
+                      href="https://yapayzekadesteklisinif.com.tr" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="underline font-black hover:text-black transition-colors inline cursor-pointer"
+                    >
+                      yapayzekadesteklisinif.com.tr
+                    </a>
+                    {" "}den giriş yapmayı deneyiniz.
+                  </span>
+                ) : (
+                  errorMessage
+                )}
+              </div>
               {errorMessage.includes("yapayzekadesteklisinif.com.tr") && (
                 <div className="mt-2.5">
                   <a 
