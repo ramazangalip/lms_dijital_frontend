@@ -82,6 +82,8 @@ export interface WeeklyProgress {
   progress_1?: number;
   progress_2?: number;
   current_round?: number;
+  has_quiz?: boolean;
+  is_round_2_started?: boolean;
   duration: string | number;
   duration_seconds?: number;
   duration_2?: string | number;
@@ -100,7 +102,9 @@ export interface WeeklyProgress {
   material_details?: {
     title: string;
     content_type: string;
-    duration_seconds: number;
+    duration_seconds?: number;
+    duration_seconds_1?: number;
+    duration_seconds_2?: number;
   }[];
 }
 
