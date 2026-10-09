@@ -47,7 +47,7 @@ export default function TeacherDashboard() {
   const [introVideoUrl, setIntroVideoUrl] = useState('');
   const [introDescription, setIntroDescription] = useState('');
   
-  const [materials, setMaterials] = useState<Material[]>([{ content_type: 'video', embed_url: '', title: '', point_value: 10 }]);
+  const [materials, setMaterials] = useState<Material[]>([{ content_type: 'video', embed_url: '', title: '', point_value: 1, duration_seconds: 120 }]);
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [systemTimeData, setSystemTimeData] = useState<any>(null);
   const [systemTimeLoading, setSystemTimeLoading] = useState<boolean>(true);
@@ -281,6 +281,7 @@ const formatToISO = (val?: string | null): string | null => {
       updated[index] = {
         ...updated[index],
         content_type: 'form',
+        point_value: updated[index].point_value || 1,
         quiz: {
           title: updated[index].title || `${weekNumber}. Hafta Sınavı`,
           description: '',

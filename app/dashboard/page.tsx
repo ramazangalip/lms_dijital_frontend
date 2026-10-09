@@ -61,7 +61,23 @@ export default function StudentDashboard() {
 
   useEffect(() => { 
     activeMaterialRef.current = activeMaterial; 
-  }, [activeMaterial]);
+    if (activeMaterial && activeMaterial.content_type === 'form' && activeMaterial.quiz?.id) {
+      if (completedMaterials.includes(String(activeMaterial.id))) {
+        api.get(`/contents/quiz/${activeMaterial.quiz.id}/last-attempt/`).then(res => {
+          if (res.data) {
+            setQuizResult({
+              score: res.data.score,
+              predicted_score: res.data.predicted_score,
+              score_difference: res.data.score_difference,
+              correct: res.data.correct,
+              wrong: res.data.wrong
+            });
+            setCurrentAttemptId(String(res.data.id));
+          }
+        }).catch(() => {});
+      }
+    }
+  }, [activeMaterial, completedMaterials]);
 
   const getSortedMaterials = (mats: Material[]) => {
     const orderMap = { pdf: 1, video: 2, podcast: 3, form: 4, assignment: 5 };
@@ -103,7 +119,8 @@ export default function StudentDashboard() {
         return { 
           ...week, 
           progress: foundProgress ? Math.round(foundProgress.completion_percentage) : 0, 
-          is_completed: foundProgress ? foundProgress.is_completed : false 
+          is_completed: foundProgress ? foundProgress.is_completed : false,
+          current_attempt_round: foundProgress?.current_attempt_round || week.current_attempt_round || 1
         };
       });
       setContents(mergedData);
@@ -123,6 +140,8 @@ export default function StudentDashboard() {
           if (res.data) {
             setQuizResult({
               score: res.data.score,
+              predicted_score: res.data.predicted_score,
+              score_difference: res.data.score_difference,
               correct: res.data.correct,
               wrong: res.data.wrong
             });
@@ -352,6 +371,14 @@ export default function StudentDashboard() {
     } finally {
       setIsAnalysisLoading(false);
     }
+  };
+
+  const handleCloseAnalysisModal = async () => {
+    setIsAnalysisModalOpen(false);
+    setQuizResult(null); 
+    setSelectedAnswers({});
+    setCurrentAttemptId(null);
+    await fetchContents(true); 
   };
 
   const handleSendChatMessage = async (e: React.FormEvent) => {
@@ -600,16 +627,10 @@ export default function StudentDashboard() {
       {/* 6. AI ANALİZ MODALI */}
       <StudentAnalysisModal
         isOpen={isAnalysisModalOpen}
-        onClose={() => setIsAnalysisModalOpen(false)}
+        onClose={handleCloseAnalysisModal}
         isLoading={isAnalysisLoading}
         feedback={aiAnalysisFeedback}
-        onContinue={async () => {
-          setIsAnalysisModalOpen(false);
-          setQuizResult(null); 
-          setSelectedAnswers({});
-          setCurrentAttemptId(null);
-          await fetchContents(true); 
-        }}
+        onContinue={handleCloseAnalysisModal}
       />
 
       {/* 7. HAREKETSİZLİK ZAMAN AŞIMI MODALI (15 DK İŞLEMSİZLİK & 10 SN GERİ SAYIM) */}

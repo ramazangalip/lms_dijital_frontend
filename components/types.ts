@@ -79,6 +79,9 @@ export interface QuizDetailAnalysis {
 export interface WeeklyProgress {
   week_number: number;
   progress: number;
+  progress_1?: number;
+  progress_2?: number;
+  current_round?: number;
   duration: string | number;
   duration_seconds?: number;
   duration_2?: string | number;
@@ -116,6 +119,9 @@ export interface BulkStudentData {
   weekly_breakdown: {
     week: number;
     progress: number;
+    progress_1?: number;
+    progress_2?: number;
+    current_round?: number;
     duration: string | number;
     duration_seconds: number;
     duration_seconds_2: number;

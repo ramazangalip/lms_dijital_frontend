@@ -102,9 +102,13 @@ export default function StudentMaterialViewer({
                   {activeMaterial.quiz?.title || activeMaterial.title}
                 </h2>
                 <p className="text-gray-400 text-[8px] font-bold uppercase tracking-widest">
-                  {selectedWeek.current_attempt_round}. Tur Değerlendirmesi
+                  {selectedWeek?.current_attempt_round || 1}. Tur Değerlendirmesi
                 </p>
               </div>
+            </div>
+            <div className="bg-amber-400/20 text-amber-300 border border-amber-400/30 px-3.5 py-1.5 rounded-xl font-black text-[10px] tracking-widest uppercase flex items-center gap-1.5 shadow-sm">
+              <Award size={14} className="text-amber-400" />
+              +{activeMaterial.point_value || 1} PUAN
             </div>
           </div>
           <div className="p-5 md:p-10 space-y-8 bg-gray-50/20">

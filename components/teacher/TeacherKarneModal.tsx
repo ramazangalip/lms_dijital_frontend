@@ -64,9 +64,9 @@ export default function TeacherKarneModal({
                   </div>
                   <div className="flex flex-col gap-1">
                     <span className="text-base font-black text-secondary leading-none">
-                      %{week.progress} Tamamlandı
+                      T1: %{week.progress_1 ?? week.progress ?? 0} {week.is_round_2_started ? ` | T2: %${week.progress_2 ?? 0}` : ''}
                     </span>
-                    {week.progress === 100 && (
+                    {((week.progress_1 ?? week.progress ?? 0) === 100 || (week.progress_2 ?? 0) === 100) && (
                       <span className="text-[10px] text-green-600 font-bold flex items-center gap-1">
                         <Check size={12}/> BAŞARIYLA BİTİRİLDİ
                       </span>

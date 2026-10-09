@@ -103,7 +103,7 @@ export default function TeacherBulkReportPrint({
                               <div className="bg-slate-50 p-1 rounded border border-slate-200/80 space-y-0.5">
                                 <div className="flex justify-between items-center text-[6px]">
                                   <span className="font-black text-slate-700">T1</span>
-                                  <span className="font-black text-blue-600">%{Math.round(week.progress || 0)}</span>
+                                  <span className="font-black text-blue-600">%{Math.round(week.progress_1 ?? week.progress ?? 0)}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-[5.5px] text-slate-500">
                                   <span>{week.correct || 0}D / {week.wrong || 0}Y</span>
@@ -148,8 +148,27 @@ export default function TeacherBulkReportPrint({
 
                               {/* 3. T2 AKTİF İSE ALT KUTU */}
                               {week.is_round_2_started && (
-                                <div className="bg-amber-50/80 p-0.5 rounded border border-amber-200 text-[5px] text-amber-800 text-center font-bold">
-                                  T2 AKTİF {week.score_2 !== undefined && week.score_2 > 0 && `(G:%${week.score_2})`}
+                                <div className="bg-amber-50/80 p-1 rounded border border-amber-200 text-[5px] text-amber-800 space-y-0.5">
+                                  <div className="flex justify-between items-center font-bold">
+                                    <span className="font-black text-amber-800">T2</span>
+                                    <span className="font-black text-amber-900">%{Math.round(week.progress_2 ?? 0)}</span>
+                                  </div>
+                                  {dur2 > 0 && (
+                                    <div className="flex justify-between items-center text-[5px] text-slate-500">
+                                      <span>{week.correct_2 || 0}D / {week.wrong_2 || 0}Y</span>
+                                      <span className="font-semibold text-slate-700">T2: {formatDuration(dur2)}</span>
+                                    </div>
+                                  )}
+                                  {week.score_2 !== undefined && week.score_2 > 0 && (
+                                    <div className="text-[5px] font-bold text-slate-600 pt-0.5 border-t border-amber-200/60 leading-tight">
+                                      <span>T:%{week.predicted_2 || 0} G:%{week.score_2}</span>
+                                      <span className={`ml-0.5 font-black ${
+                                        (week.diff_2 || 0) > 0 ? 'text-emerald-700' : (week.diff_2 || 0) < 0 ? 'text-amber-700' : 'text-slate-600'
+                                      }`}>
+                                        (F:{(week.diff_2 || 0) > 0 ? `+${week.diff_2}` : (week.diff_2 || 0)})
+                                      </span>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
