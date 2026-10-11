@@ -23,9 +23,9 @@ export default function RegisterPage() {
 
 
   const departments = [
-    { id: 'siyasetbilimivekamuyonetimi', name: 'Siyaset Bilimi Ve Kamu Yönetimi' },
-    { id: 'turkdiliveedebiyati', name: 'Türk Dili Ve Edebiyatı' },
-    { id: 'matematik', name: 'Matematik' }
+    { id: 'matematik', name: 'Matematik' },
+    { id: 'siyasetbilimivekamuyonetimi', name: 'Siyaset Bilimi ve Kamu Yönetimi' },
+    { id: 'turkdiliveedebiyati', name: 'Türk Dili Ve Edebiyatı' }
   ];
 
   const handleSendOTP = async () => {

@@ -210,9 +210,9 @@ export interface DepartmentItem {
 }
 
 export const DEPARTMENT_MAP: Record<string, string> = {
-  'siyasetbilimivekamuyonetimi': 'Siyaset Bilimi Ve Kamu Yönetimi',
-  'turkdiliveedebiyati': 'Türk Dili Ve Edebiyatı',
-  'matematik': 'Matematik'
+  'matematik': 'Matematik',
+  'siyasetbilimivekamuyonetimi': 'Siyaset Bilimi ve Kamu Yönetimi',
+  'turkdiliveedebiyati': 'Türk Dili Ve Edebiyatı'
 };
 
 export const getDeptName = (deptKey: string) => {
