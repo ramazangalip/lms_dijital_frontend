@@ -10,7 +10,8 @@ import {
   BulkStudentData, 
   ChatbotAnalyticsResponse,
   DepartmentItem,
-  DepartmentSchedule 
+  DepartmentSchedule,
+  PreEvaluationTest
 } from '@/components/types';
 
 import TeacherHeader, { TeacherActiveTab } from '@/components/teacher/TeacherHeader';
@@ -18,6 +19,7 @@ import TeacherContentTab from '@/components/teacher/TeacherContentTab';
 import TeacherStudentAnalyticsTab from '@/components/teacher/TeacherStudentAnalyticsTab';
 import TeacherTimeAnalyticsTab from '@/components/teacher/TeacherTimeAnalyticsTab';
 import TeacherChatbotAnalyticsTab from '@/components/teacher/TeacherChatbotAnalyticsTab';
+import TeacherPreTestAnalyticsTab from '@/components/teacher/TeacherPreTestAnalyticsTab';
 import TeacherBulkReportPrint from '@/components/teacher/TeacherBulkReportPrint';
 import TeacherKarneModal from '@/components/teacher/TeacherKarneModal';
 import InactivityTimeoutModal from '@/components/common/InactivityTimeoutModal';
@@ -56,6 +58,14 @@ export default function TeacherDashboard() {
   const [chatbotData, setChatbotData] = useState<ChatbotAnalyticsResponse | null>(null);
   const [chatbotLoading, setChatbotLoading] = useState<boolean>(false);
   const [chatbotPdfLoading, setChatbotPdfLoading] = useState<boolean>(false);
+
+  // Ön Değerlendirme Testi State'leri
+  const [isPretestActive, setIsPretestActive] = useState<boolean>(false);
+  const [preTest, setPreTest] = useState<PreEvaluationTest>({
+    title: '',
+    description: '',
+    questions: []
+  });
 
   // --- DİNAMİK BÖLÜMLERİ ÇEKME ---
   useEffect(() => {
@@ -166,6 +176,8 @@ const formatToISO = (val?: string | null): string | null => {
   // --- HAFTA DETAYI ÇEKME ---
   const fetchWeekDetail = useCallback(async (week: number) => {
     setFetchingWeek(true);
+    setMaterials([]);
+    setFlashcards([]);
     try {
       const res = await api.get(`/contents/list/?week_number=${week}`);
       const data = res.data;
@@ -208,6 +220,29 @@ const formatToISO = (val?: string | null): string | null => {
       
       setFlashcards(data.flashcards || []);
       
+      setIsPretestActive(Boolean(data.is_pretest_active));
+      if (data.pre_test && Array.isArray(data.pre_test.questions) && data.pre_test.questions.length > 0) {
+        setPreTest(data.pre_test);
+      } else {
+        setPreTest({
+          title: `${week}. Hafta Ön Değerlendirme Testi`,
+          description: '',
+          questions: [
+            {
+              question_text: '',
+              target_week: 1,
+              options: [
+                { option_text: '', is_correct: true },
+                { option_text: '', is_correct: false },
+                { option_text: '', is_correct: false },
+                { option_text: '', is_correct: false },
+                { option_text: '', is_correct: false },
+              ]
+            }
+          ]
+        });
+      }
+      
     } catch (err) {
       setTitle('');
       setDescription('');
@@ -221,6 +256,12 @@ const formatToISO = (val?: string | null): string | null => {
       })));
       setMaterials([{ content_type: 'video', embed_url: '', title: '', point_value: 1, duration_seconds: 120 }]);
       setFlashcards([]);
+      setIsPretestActive(false);
+      setPreTest({
+        title: `${week}. Hafta Ön Değerlendirme Testi`,
+        description: '',
+        questions: []
+      });
     } finally {
       setFetchingWeek(false);
     }
@@ -399,15 +440,157 @@ const formatToISO = (val?: string | null): string | null => {
     alert("Seçilen tarihler tüm bölümlere başarıyla uygulandı.");
   };
 
+  // --- ÖN DEĞERLENDİRME TESTİ YÖNETİMİ ---
+  const handleAddPreTestQuestion = () => {
+    setPreTest(prev => ({
+      ...prev,
+      questions: [
+        ...(prev.questions || []),
+        {
+          question_text: '',
+          target_week: 1,
+          options: [
+            { option_text: '', is_correct: true },
+            { option_text: '', is_correct: false },
+            { option_text: '', is_correct: false },
+            { option_text: '', is_correct: false },
+            { option_text: '', is_correct: false },
+          ]
+        }
+      ]
+    }));
+  };
+
+  const handleRemovePreTestQuestion = (qIndex: number) => {
+    setPreTest(prev => ({
+      ...prev,
+      questions: (prev.questions || []).filter((_, i) => i !== qIndex)
+    }));
+  };
+
+  const handleUpdatePreTestQuestionText = (qIndex: number, text: string) => {
+    setPreTest(prev => {
+      const qs = [...(prev.questions || [])];
+      if (qs[qIndex]) {
+        qs[qIndex] = { ...qs[qIndex], question_text: text };
+      }
+      return { ...prev, questions: qs };
+    });
+  };
+
+  const handleUpdatePreTestQuestionTargetWeek = (qIndex: number, target: number) => {
+    setPreTest(prev => {
+      const qs = [...(prev.questions || [])];
+      if (qs[qIndex]) {
+        qs[qIndex] = { ...qs[qIndex], target_week: target };
+      }
+      return { ...prev, questions: qs };
+    });
+  };
+
+  const handleSetPreTestCorrectOption = (qIndex: number, oIndex: number) => {
+    setPreTest(prev => {
+      const qs = [...(prev.questions || [])];
+      if (qs[qIndex]) {
+        let opts = [...(qs[qIndex].options || [])];
+        while (opts.length < 5) {
+          opts.push({ option_text: '', is_correct: opts.length === 0 });
+        }
+        qs[qIndex] = {
+          ...qs[qIndex],
+          options: opts.map((opt, idx) => ({
+            ...opt,
+            is_correct: idx === oIndex
+          }))
+        };
+      }
+      return { ...prev, questions: qs };
+    });
+  };
+
+  const handleUpdatePreTestOption = (qIndex: number, oIndex: number, text: string) => {
+    setPreTest(prev => {
+      const qs = [...(prev.questions || [])];
+      if (qs[qIndex]) {
+        let opts = [...(qs[qIndex].options || [])];
+        while (opts.length < 5) {
+          opts.push({ option_text: '', is_correct: opts.length === 0 });
+        }
+        opts[oIndex] = { ...opts[oIndex], option_text: text };
+        qs[qIndex] = { ...qs[qIndex], options: opts };
+      }
+      return { ...prev, questions: qs };
+    });
+  };
+
   // --- FORMU KAYDETME ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 1. Hafta başlığı kontrolü
+    if (!title || !title.trim()) {
+      alert("Lütfen hafta başlığını giriniz.");
+      return;
+    }
+
+    // 2. Tamamen boş materyalleri filtrele (başlık ve URL boş olan varsayılan placeholder'lar)
+    const activeMaterials = materials.filter(m => {
+      if (!m.title?.trim() && (!m.embed_url || !m.embed_url.trim())) return false;
+      return true;
+    });
+
+    // Başlığı eksik olan materyal var mı kontrol et
+    const missingTitleMat = activeMaterials.find(m => !m.title?.trim());
+    if (missingTitleMat) {
+      alert("Lütfen eklediğiniz tüm materyallerin başlığını doldurunuz.");
+      return;
+    }
+
+    // Bilgi testi (form) varsa soruları kontrol et
+    for (const m of activeMaterials) {
+      if (m.content_type === 'form' && m.quiz) {
+        const questions = m.quiz.questions || [];
+        for (let qi = 0; qi < questions.length; qi++) {
+          const q = questions[qi];
+          if (!q.question_text?.trim()) {
+            alert(`Lütfen sınavdaki (Bilgi Testi) ${qi + 1}. sorunun metnini yazınız.`);
+            return;
+          }
+          const emptyOpt = q.options?.find(o => !o.option_text?.trim());
+          if (emptyOpt) {
+            alert(`Lütfen sınavdaki (Bilgi Testi) ${qi + 1}. sorunun tüm seçeneklerini doldurunuz.`);
+            return;
+          }
+        }
+      }
+    }
+
+    // 3. Ön değerlendirme testi aktif ise soru kontrolü
+    if (isPretestActive && Number(weekNumber) >= 2) {
+      if (!preTest.questions || preTest.questions.length === 0) {
+        alert("Ön değerlendirme testini aktif ettiniz. Lütfen en az bir soru ekleyiniz veya ön değerlendirme testini kapatınız.");
+        return;
+      }
+      for (let qi = 0; qi < preTest.questions.length; qi++) {
+        const q = preTest.questions[qi];
+        if (!q.question_text?.trim()) {
+          alert(`Lütfen ön değerlendirme testindeki ${qi + 1}. sorunun metnini yazınız.`);
+          return;
+        }
+        const emptyOpt = q.options?.find(o => !o.option_text?.trim());
+        if (emptyOpt) {
+          alert(`Lütfen ön değerlendirme testindeki ${qi + 1}. sorunun 5 seçeneğini de doldurunuz.`);
+          return;
+        }
+      }
+    }
+
     setLoading(true);
 
     const payload: any = {
       week_number: Number(weekNumber),
-      title,
-      description,
+      title: title.trim(),
+      description: description.trim(),
       release_date: formatToISO(releaseDate),
       deactivation_date: formatToISO(deactivationDate),
       department_schedules: departmentSchedules.map(s => ({
@@ -415,11 +598,11 @@ const formatToISO = (val?: string | null): string | null => {
         release_date: formatToISO(s.release_date),
         deactivation_date: formatToISO(s.deactivation_date)
       })),
-      materials: materials.map(m => {
+      materials: activeMaterials.map(m => {
         const matPayload: any = {
           content_type: m.content_type,
-          title: m.title,
-          embed_url: m.embed_url || "https://example.com",
+          title: m.title.trim(),
+          embed_url: m.embed_url?.trim() || "https://example.com",
           point_value: Number(m.point_value) !== undefined && !isNaN(Number(m.point_value)) ? Number(m.point_value) : 1,
           duration_seconds: (m.content_type === 'video' || m.content_type === 'podcast')
             ? (m.duration_seconds !== undefined && !isNaN(Number(m.duration_seconds)) ? Number(m.duration_seconds) : 120)
@@ -433,13 +616,32 @@ const formatToISO = (val?: string | null): string | null => {
         }
         return matPayload;
       }),
-      flashcards: flashcards.filter(f => f.question && f.answer).map((f, idx) => ({
+      flashcards: flashcards.filter(f => f.question?.trim() && f.answer?.trim()).map((f, idx) => ({
         id: f.id,
-        question: f.question,
-        answer: f.answer,
+        question: f.question.trim(),
+        answer: f.answer.trim(),
         order: f.order ?? idx
-      }))
+      })),
+      is_pretest_active: isPretestActive
     };
+
+    if (isPretestActive && Number(weekNumber) >= 2) {
+      payload.pre_test = {
+        title: preTest.title || `${weekNumber}. Hafta Ön Değerlendirme Testi`,
+        description: preTest.description || '',
+        questions: (preTest.questions || []).map((q, idx) => ({
+          id: q.id,
+          question_text: q.question_text.trim(),
+          order: q.order ?? idx,
+          target_week: Number(q.target_week) || 1,
+          options: (q.options || []).map(opt => ({
+            id: opt.id,
+            option_text: opt.option_text.trim(),
+            is_correct: Boolean(opt.is_correct)
+          }))
+        }))
+      };
+    }
 
     if (Number(weekNumber) === 1) {
       payload.intro_title = introTitle;
@@ -451,9 +653,42 @@ const formatToISO = (val?: string | null): string | null => {
       await api.post('/contents/list/', payload);
       alert(`${weekNumber}. Hafta Başarıyla Kaydedildi!`);
       fetchWeekDetail(weekNumber);
-    } catch (err) {
-      const error = err as AxiosError<{ detail?: string }>;
-      alert(`Hata: ${error.response?.data?.detail || "Kayıt sırasında bir hata oluştu."}`);
+    } catch (err: any) {
+      let errorMsg = "Kayıt sırasında bir hata oluştu.";
+      if (err.response?.data) {
+        const data = err.response.data;
+        if (typeof data === 'string') {
+          errorMsg = data;
+        } else if (data.detail) {
+          errorMsg = data.detail;
+        } else if (typeof data === 'object') {
+          const messages: string[] = [];
+          const extract = (obj: any, prefix = '') => {
+            for (const k in obj) {
+              const val = obj[k];
+              const p = prefix ? `${prefix} -> ${k}` : k;
+              if (typeof val === 'string') {
+                messages.push(`${p}: ${val}`);
+              } else if (Array.isArray(val)) {
+                val.forEach((item, i) => {
+                  if (typeof item === 'string') {
+                    messages.push(`${p}[${i + 1}]: ${item}`);
+                  } else if (typeof item === 'object') {
+                    extract(item, `${p}[${i + 1}]`);
+                  }
+                });
+              } else if (typeof val === 'object' && val !== null) {
+                extract(val, p);
+              }
+            }
+          };
+          extract(data);
+          if (messages.length > 0) {
+            errorMsg = messages.join('\n');
+          }
+        }
+      }
+      alert(`Kayıt Başarısız!\n\n${errorMsg}`);
     } finally {
       setLoading(false);
     }
@@ -649,6 +884,15 @@ const formatToISO = (val?: string | null): string | null => {
             onUpdateFlashcard={updateFlashcard}
             description={description}
             onDescriptionChange={setDescription}
+            isPretestActive={isPretestActive}
+            onIsPretestActiveChange={setIsPretestActive}
+            preTest={preTest}
+            onAddPreTestQuestion={handleAddPreTestQuestion}
+            onRemovePreTestQuestion={handleRemovePreTestQuestion}
+            onUpdatePreTestQuestionText={handleUpdatePreTestQuestionText}
+            onUpdatePreTestQuestionTargetWeek={handleUpdatePreTestQuestionTargetWeek}
+            onSetPreTestCorrectOption={handleSetPreTestCorrectOption}
+            onUpdatePreTestOption={handleUpdatePreTestOption}
             onSubmit={handleSubmit}
             loading={loading}
             fetchingWeek={fetchingWeek}
@@ -690,6 +934,14 @@ const formatToISO = (val?: string | null): string | null => {
             chatbotLoading={chatbotLoading}
             onExportChatbotPDF={exportChatbotReportPDF}
             pdfLoading={chatbotPdfLoading}
+          />
+        )}
+
+        {activeTab === 'pretest_analytics' && (
+          <TeacherPreTestAnalyticsTab
+            departments={departments}
+            selectedDepartment={selectedDepartment}
+            onDepartmentChange={setSelectedDepartment}
           />
         )}
       </main>

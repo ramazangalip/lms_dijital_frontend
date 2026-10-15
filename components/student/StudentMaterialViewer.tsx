@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { 
-  Sparkles, FileText, Download, ListChecks, Award, ArrowRight, Target, TrendingUp, TrendingDown, Minus, Edit3, AlertCircle
+  Sparkles, FileText, Download, ListChecks, Award, ArrowRight, Target, TrendingUp, TrendingDown, Minus, Edit3, AlertCircle, Lock
 } from 'lucide-react';
 import { Material, WeeklyContent, QuizResultState } from '@/components/types';
 
@@ -90,6 +90,34 @@ export default function StudentMaterialViewer({
             allowFullScreen
             title={activeMaterial.title}
           />
+        </div>
+      ) : selectedWeek.is_temporarily_unlocked ? (
+        /* TELAFİ SÜRECİ TEST KISITLAMASI GÖRÜNÜMÜ */
+        <div className="bg-white border-2 border-amber-200 p-8 md:p-12 rounded-[2.5rem] shadow-xl flex flex-col items-center gap-6 text-center max-w-2xl mx-auto animate-in zoom-in-95">
+          <div className="w-16 h-16 rounded-3xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center shadow-xs">
+            <Lock size={32} className="stroke-[2.2]" />
+          </div>
+          <div className="space-y-3 leading-normal">
+            <span className="bg-amber-100 text-amber-900 border border-amber-300 px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
+              Telafi Süreci Kısıtlaması
+            </span>
+            <h3 className="text-xl md:text-2xl font-black text-secondary uppercase tracking-tight">
+              Haftalık Değerlendirme Testi Çözülemez
+            </h3>
+            <p className="text-xs text-gray-600 font-medium leading-relaxed max-w-lg mx-auto">
+              Bu hafta, ön değerlendirme testindeki eksikleriniz doğrultusunda <strong>2 gün süreyle yalnızca ders materyallerini inceleme ve telafi etme</strong> amacıyla açılmıştır.
+            </p>
+            <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl text-[11px] text-amber-900 text-left font-semibold space-y-2 mt-2">
+              <p className="font-bold flex items-center gap-1.5 text-amber-800">
+                <AlertCircle size={15} /> Telafi Sürecinde Neler Yapabilirsiniz?
+              </p>
+              <ul className="list-disc pl-5 space-y-1 text-amber-900/90 text-[10px]">
+                <li>Haftanın video, podcast ve PDF dökümanlarını çalışıp eksiklerinizi giderebilirsiniz.</li>
+                <li>İncelediğiniz ders materyalleri telafi sürecine özel olarak ayrı kaydedilir.</li>
+                <li>Normal dönemdeki T1/T2 süreleriniz ve haftalık test skorlarınız bu süreçten etkilenmez.</li>
+              </ul>
+            </div>
+          </div>
         </div>
       ) : (
         /* SINAV (QUIZ) GÖRÜNÜMÜ */

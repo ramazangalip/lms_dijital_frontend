@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
 import api from '@/lib/api';
-import { PlayCircle, Eye, RefreshCcw } from 'lucide-react';
+import { PlayCircle, Eye, RefreshCcw, Unlock } from 'lucide-react';
 
 import { 
   Material, 
@@ -14,6 +14,7 @@ import StudentPointsBadge from '@/components/student/StudentPointsBadge';
 import StudentHeaderMobile from '@/components/student/StudentHeaderMobile';
 import StudentSidebar from '@/components/student/StudentSidebar';
 import StudentIntroView from '@/components/student/StudentIntroView';
+import StudentPreTestView from '@/components/student/StudentPreTestView';
 import StudentMaterialList from '@/components/student/StudentMaterialList';
 import StudentMaterialViewer from '@/components/student/StudentMaterialViewer';
 import StudentFlashcards from '@/components/student/StudentFlashcards';
@@ -86,6 +87,8 @@ export default function StudentDashboard() {
 
   const isQuizLocked = () => {
     if (!selectedWeek) return false;
+    // Telafi kilidi açık olan haftalarda haftalık değerlendirme testi çözülemez!
+    if (selectedWeek.is_temporarily_unlocked) return true;
     const requiredMaterials = selectedWeek.materials.filter(m => m.content_type !== 'form');
     return requiredMaterials.some(m => !completedMaterials.includes(String(m.id)));
   };
@@ -116,10 +119,15 @@ export default function StudentDashboard() {
       const rawContents = contentRes.data;
       const mergedData = rawContents.map((week: WeeklyContent) => {
         const foundProgress = progressRes.data.find((p: ProgressData) => String(p.weekly_content) === String(week.id));
+        const isTempUnlocked = Boolean(week.is_temporarily_unlocked);
         return { 
           ...week, 
-          progress: foundProgress ? Math.round(foundProgress.completion_percentage) : 0, 
-          is_completed: foundProgress ? foundProgress.is_completed : false,
+          progress: isTempUnlocked 
+            ? Math.round(week.remediation_data?.completion_percentage ?? week.progress ?? 0) 
+            : (foundProgress ? Math.round(foundProgress.completion_percentage) : (week.progress ?? 0)), 
+          is_completed: isTempUnlocked 
+            ? Boolean(week.remediation_data?.is_completed ?? week.is_completed) 
+            : (foundProgress ? foundProgress.is_completed : Boolean(week.is_completed)),
           current_attempt_round: foundProgress?.current_attempt_round || week.current_attempt_round || 1
         };
       });
@@ -276,6 +284,10 @@ export default function StudentDashboard() {
   };
 
   const handleQuizSubmit = async () => {
+    if (selectedWeek?.is_temporarily_unlocked) {
+      alert("Bu hafta ön değerlendirme testindeki eksikler nedeniyle 2 günlüğüne telafi ve inceleme amacıyla açılmıştır. Haftalık değerlendirme testi telafi sürecinde çözülemez.");
+      return;
+    }
     if (!activeMaterial?.quiz) return;
     const totalQs = activeMaterial.quiz.questions.length;
     if (Object.keys(selectedAnswers).length < totalQs) { 
@@ -487,6 +499,16 @@ export default function StudentDashboard() {
     </div>
   );
 
+  const isPretestRequired = Boolean(
+    selectedWeek &&
+    selectedWeek.week_number >= 2 &&
+    selectedWeek.is_pretest_active &&
+    !selectedWeek.is_pretest_completed &&
+    selectedWeek.pre_test &&
+    Array.isArray(selectedWeek.pre_test.questions) &&
+    selectedWeek.pre_test.questions.length > 0
+  );
+
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden font-roboto relative text-secondary text-left">
       {/* 1. YEŞİL ŞEFFAF PUAN BİLDİRİMİ */}
@@ -525,9 +547,29 @@ export default function StudentDashboard() {
                 description={introStatus.description}
                 isWatched={introStatus.isWatched}
               />
+            ) : isPretestRequired ? (
+              /* ÖN DEĞERLENDİRME TESTİ GÖRÜNÜMÜ */
+              <StudentPreTestView
+                selectedWeek={selectedWeek}
+                onCompleted={() => fetchContents(true)}
+              />
             ) : (
               /* HAFTA İÇERİĞİ GÖRÜNÜMÜ */
               <div className="max-w-screen-2xl mx-auto p-4 md:p-10 text-left">
+                {/* 2 GÜNLÜK TELAFİ KİLİT AÇILMA BİLDİRİMİ */}
+                {selectedWeek.is_temporarily_unlocked && (
+                  <div className="mb-6 p-4 bg-amber-50 rounded-2xl border-2 border-amber-300 flex items-center gap-3 text-amber-900 text-xs font-bold shadow-xs">
+                    <Unlock className="text-amber-600 shrink-0" size={20} />
+                    <div>
+                      <span className="font-black uppercase tracking-wider block">
+                        TELAFİ KİLİT AKTİF ({selectedWeek.temporary_unlock_hours_remaining ? `${selectedWeek.temporary_unlock_hours_remaining} Saat Kaldı` : '2 Gün'})
+                      </span>
+                      <span className="text-[11px] text-amber-800 font-medium">
+                        Bu hafta, ön değerlendirme testindeki telafi süreciniz nedeniyle geçici olarak açılmıştır. İçerikleri inceleyebilirsiniz (bu süreçte yapılan çalışmalarda puan/ilerleme kaydedilmez).
+                      </span>
+                    </div>
+                  </div>
+                )}
                 {/* Hafta Başlık Barı ve Toplam Puan Kartı */}
                 <div className="mb-10 border-b pb-8 border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-6 text-left">
                   <div className="flex flex-col gap-4 text-left flex-1 min-w-0">
@@ -568,6 +610,7 @@ export default function StudentDashboard() {
                     activeMaterial={activeMaterial}
                     completedMaterials={completedMaterials}
                     isQuizLocked={isQuizLocked()}
+                    isTemporarilyUnlocked={selectedWeek.is_temporarily_unlocked}
                     onSelectMaterial={(mat) => setActiveMaterial(mat)}
                   />
 

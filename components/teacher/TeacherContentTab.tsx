@@ -2,9 +2,10 @@
 import React from 'react';
 import { 
   RefreshCcw, ShieldCheck, Type, PlayCircle, ListChecks, Plus, Award, 
-  Trash2, Check, BookOpen, Download, Calendar, Save, Filter, Clock 
+  Trash2, Check, BookOpen, Download, Calendar, Save, Filter, Clock,
+  HelpCircle, Lock, Unlock
 } from 'lucide-react';
-import { Material, Flashcard, DepartmentSchedule, DepartmentItem } from '@/components/types';
+import { Material, Flashcard, DepartmentSchedule, DepartmentItem, PreEvaluationTest } from '@/components/types';
 
 interface TeacherContentTabProps {
   weekNumber: number;
@@ -38,6 +39,15 @@ interface TeacherContentTabProps {
   onUpdateFlashcard: (idx: number, field: 'question' | 'answer', value: string) => void;
   description: string;
   onDescriptionChange: (desc: string) => void;
+  isPretestActive: boolean;
+  onIsPretestActiveChange: (active: boolean) => void;
+  preTest: PreEvaluationTest;
+  onAddPreTestQuestion: () => void;
+  onRemovePreTestQuestion: (qIndex: number) => void;
+  onUpdatePreTestQuestionText: (qIndex: number, text: string) => void;
+  onUpdatePreTestQuestionTargetWeek: (qIndex: number, target: number) => void;
+  onSetPreTestCorrectOption: (qIndex: number, oIndex: number) => void;
+  onUpdatePreTestOption: (qIndex: number, oIndex: number, text: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   loading: boolean;
   fetchingWeek: boolean;
@@ -75,6 +85,15 @@ export default function TeacherContentTab({
   onUpdateFlashcard,
   description,
   onDescriptionChange,
+  isPretestActive,
+  onIsPretestActiveChange,
+  preTest,
+  onAddPreTestQuestion,
+  onRemovePreTestQuestion,
+  onUpdatePreTestQuestionText,
+  onUpdatePreTestQuestionTargetWeek,
+  onSetPreTestCorrectOption,
+  onUpdatePreTestOption,
   onSubmit,
   loading,
   fetchingWeek
@@ -249,6 +268,174 @@ export default function TeacherContentTab({
                 />
               </div>
             </div>
+          </div>
+        )}
+
+        {/* 2. Hafta ve Sonrası: Haftalık Ön Değerlendirme Testi */}
+        {weekNumber >= 2 && (
+          <div className="mb-10 p-6 md:p-8 bg-gradient-to-br from-indigo-50/60 via-white to-purple-50/30 rounded-3xl border-2 border-indigo-200 shadow-sm space-y-6 text-left leading-normal">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-indigo-100 pb-4 gap-4 leading-none text-left">
+              <div className="flex items-center gap-3 text-indigo-700 leading-none text-left">
+                <HelpCircle size={24} className="text-indigo-600 shrink-0" />
+                <div className="text-left leading-none">
+                  <h3 className="font-black uppercase text-[10px] md:text-xs tracking-widest leading-none">
+                    HAFTALIK ÖN DEĞERLENDİRME TESTİ (TELAFİ MEKANİZMASI)
+                  </h3>
+                  <p className="text-[9px] text-gray-500 font-bold mt-2 uppercase tracking-tighter leading-none">
+                    * Öğrenci bu testi çözmeden haftalık materyallere geçiş yapamaz. Yanlış yapılan sorular ilgili önceki haftanın kilidini 2 gün açar.
+                  </p>
+                </div>
+              </div>
+
+              {/* Ön Değerlendirme Kilidi Toggle Butonu */}
+              <button
+                type="button"
+                onClick={() => onIsPretestActiveChange(!isPretestActive)}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all shadow-sm shrink-0 ${
+                  isPretestActive
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200'
+                    : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                }`}
+              >
+                {isPretestActive ? (
+                  <>
+                    <Lock size={14} /> ÖN DEĞERLENDİRME: AKTİF (ZORUNLU)
+                  </>
+                ) : (
+                  <>
+                    <Unlock size={14} /> ÖN DEĞERLENDİRME: PASİF (KAPALI)
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Bilgilendirme Notu */}
+            <div className="bg-indigo-50/70 p-4 rounded-2xl border border-indigo-100 text-[11px] text-indigo-950 leading-relaxed font-semibold">
+              <p>
+                <strong>Nasıl Çalışır?</strong> Ön değerlendirme testi aktif edildiğinde, öğrenci haftaya giriş yaptığında ilk olarak bu 5 şıklı testi çözer. Yanlış yaptığı sorunun hedeflediği önceki haftanın kilidi <strong>2 gün boyunca (48 saat)</strong> telafi amaçlı açılır ve öğrenciye sidebar üzerinde bildirilir. Bu telafi sürecinde öğrenci önceki haftayı tamamlasa bile <strong>DB'ye puan/ilerleme kaydedilmez</strong>. Hedef hafta bilgisi öğrenciye asla gösterilmez.
+              </p>
+            </div>
+
+            {isPretestActive && (
+              <div className="space-y-6 pt-2 text-left">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <h4 className="text-xs font-black uppercase text-indigo-900 tracking-wider">
+                    Ön Değerlendirme Soruları ({preTest?.questions?.length || 0})
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={onAddPreTestQuestion}
+                    className="bg-indigo-600 text-white flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black hover:bg-indigo-700 transition-all shadow-sm"
+                  >
+                    <Plus size={14} /> YENİ SORU EKLE
+                  </button>
+                </div>
+
+                {(!preTest?.questions || preTest.questions.length === 0) ? (
+                  <div className="p-6 bg-white rounded-2xl border border-dashed border-indigo-200 text-center text-gray-400 text-xs font-bold">
+                    Henüz soru eklenmedi. Yukarıdaki &quot;Yeni Soru Ekle&quot; butonuna basarak soru ekleyebilirsiniz.
+                  </div>
+                ) : (
+                  preTest.questions.map((q, qIndex) => (
+                    <div
+                      key={qIndex}
+                      className="p-5 bg-white rounded-2xl border-2 border-indigo-100 space-y-4 hover:border-indigo-300 transition-all shadow-sm text-left"
+                    >
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-gray-100 pb-3">
+                        <span className="font-black text-indigo-700 text-xs uppercase">
+                          Soru #{qIndex + 1}
+                        </span>
+                        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                          <div className="flex items-center gap-2">
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-tight whitespace-nowrap">
+                              Yanlışta Açılacak Hafta:
+                            </label>
+                            <select
+                              value={q.target_week ?? 1}
+                              onChange={(e) => onUpdatePreTestQuestionTargetWeek(qIndex, Number(e.target.value))}
+                              className="p-1.5 px-3 rounded-lg border border-indigo-200 text-xs font-black bg-indigo-50/50 text-indigo-900 outline-none focus:border-indigo-500 cursor-pointer"
+                            >
+                              {Array.from({ length: weekNumber - 1 }, (_, i) => i + 1).map((wNum) => (
+                                <option key={wNum} value={wNum}>
+                                  {wNum}. Hafta
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => onRemovePreTestQuestion(qIndex)}
+                            className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
+                            title="Soruyu Sil"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Soru Metni */}
+                      <div>
+                        <label className="block text-[9px] font-black text-gray-400 uppercase mb-1.5 tracking-widest text-left">
+                          Soru Metni
+                        </label>
+                        <textarea
+                          rows={2}
+                          placeholder="Ön değerlendirme sorusu metnini yazınız..."
+                          className="w-full p-3 rounded-xl border border-gray-200 text-xs font-bold outline-none focus:border-indigo-500 bg-gray-50/50 text-slate-800"
+                          value={q.question_text}
+                          onChange={(e) => onUpdatePreTestQuestionText(qIndex, e.target.value)}
+                        />
+                      </div>
+
+                      {/* 5 Şıklı Seçenekler */}
+                      <div className="space-y-2 text-left">
+                        <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest text-left">
+                          5 Seçenek (Doğru cevabın harfine tıklayarak yeşil yapınız)
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+                          {(q.options && q.options.length === 5
+                            ? q.options
+                            : Array.from({ length: 5 }, (_, i) => q.options?.[i] || { option_text: '', is_correct: i === 0 })
+                          ).map((opt, oIndex) => {
+                            const optLetter = ['A', 'B', 'C', 'D', 'E'][oIndex];
+                            return (
+                              <div
+                                key={oIndex}
+                                className={`flex items-center gap-2 p-2 rounded-xl border transition-all ${
+                                  opt.is_correct
+                                    ? 'bg-green-50 border-green-500 ring-1 ring-green-500'
+                                    : 'bg-white border-gray-200 hover:border-gray-300'
+                                }`}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => onSetPreTestCorrectOption(qIndex, oIndex)}
+                                  className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 font-black text-[10px] shadow-sm transition-all ${
+                                    opt.is_correct
+                                      ? 'bg-green-500 text-white shadow-green-200'
+                                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                  }`}
+                                  title={opt.is_correct ? "Doğru Cevap" : "Doğru Cevap Olarak Seç"}
+                                >
+                                  {optLetter}
+                                </button>
+                                <input
+                                  type="text"
+                                  placeholder={`${optLetter} şıkkı...`}
+                                  className="flex-1 bg-transparent text-[11px] font-bold outline-none text-slate-800"
+                                  value={opt.option_text}
+                                  onChange={(e) => onUpdatePreTestOption(qIndex, oIndex, e.target.value)}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -498,11 +685,11 @@ export default function TeacherContentTab({
         {/* Kaydet Butonu */}
         <button 
           type="submit" 
-          disabled={loading} 
-          className="w-full mt-10 bg-[#1a1a1a] text-white py-6 rounded-[2rem] font-black tracking-[0.2em] hover:bg-black transition-all flex justify-center items-center gap-3 shadow-2xl active:scale-95 text-xs md:text-sm uppercase leading-none"
+          disabled={loading || fetchingWeek} 
+          className="w-full mt-10 bg-[#1a1a1a] text-white py-6 rounded-[2rem] font-black tracking-[0.2em] hover:bg-black transition-all flex justify-center items-center gap-3 shadow-2xl active:scale-95 text-xs md:text-sm uppercase leading-none disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Save size={20} className="text-[#ce1212]" /> 
-          {loading ? "KAYDEDİLİYOR..." : "HAFTAYI KAYDET VE YAYINLA"}
+          {loading ? "KAYDEDİLİYOR..." : fetchingWeek ? "HAFTA YÜKLENİYOR..." : "HAFTAYI KAYDET VE YAYINLA"}
         </button>
       </div>
     </form>

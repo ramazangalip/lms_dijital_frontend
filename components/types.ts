@@ -42,6 +42,27 @@ export interface DepartmentSchedule {
   deactivation_date: string | null;
 }
 
+export interface PreEvaluationOption {
+  id?: number | string;
+  option_text: string;
+  is_correct?: boolean;
+}
+
+export interface PreEvaluationQuestion {
+  id?: number | string;
+  question_text: string;
+  order?: number;
+  target_week?: number;
+  options: PreEvaluationOption[];
+}
+
+export interface PreEvaluationTest {
+  id?: number | string;
+  title: string;
+  description?: string;
+  questions: PreEvaluationQuestion[];
+}
+
 export interface WeeklyContent {
   id: number;
   week_number: number;
@@ -61,6 +82,19 @@ export interface WeeklyContent {
   progress?: number;
   is_completed?: boolean;
   current_attempt_round: number;
+  is_pretest_active?: boolean;
+  is_pretest_completed?: boolean;
+  pre_test?: PreEvaluationTest;
+  is_temporarily_unlocked?: boolean;
+  temporary_unlock_expires_at?: string | null;
+  temporary_unlock_hours_remaining?: number;
+  remediation_data?: {
+    is_active: boolean;
+    completion_percentage: number;
+    duration_seconds: number;
+    is_completed: boolean;
+    expires_at: string;
+  } | null;
 }
 
 export interface ProgressData {
@@ -99,6 +133,17 @@ export interface WeeklyProgress {
   wrong_2?: number;
   questions?: string[];
   quiz_results?: QuizDetailAnalysis[];
+  has_remediation?: boolean;
+  remediation_progress?: number;
+  remediation_duration?: number;
+  remediation_is_completed?: boolean;
+  remediation_is_active?: boolean;
+  remediation_expires_at?: string | null;
+  remediation_completed_materials?: {
+    title: string;
+    content_type: string;
+    completed_at: string;
+  }[];
   material_details?: {
     title: string;
     content_type: string;
@@ -232,3 +277,74 @@ export const formatDuration = (totalSeconds: number | string | undefined) => {
   }
   return `${minutes} dk`;
 };
+
+export interface PreTestWrongDetail {
+  question_text: string;
+  target_week: number;
+  selected_option: string;
+}
+
+export interface PreTestStudentWeekResult {
+  week_number: number;
+  week_title: string;
+  is_pretest_active: boolean;
+  has_attempt: boolean;
+  score: number | null;
+  correct: number | null;
+  wrong: number | null;
+  completed_at: string | null;
+  unlocked_weeks: number[];
+  wrong_questions: PreTestWrongDetail[];
+}
+
+export interface RemediationMaterialDetail {
+  id: string;
+  title: string;
+  content_type: string;
+  duration_seconds: number;
+  duration_minutes: number;
+  is_completed: boolean;
+  completed_at: string | null;
+}
+
+export interface PreTestActiveRemediation {
+  id?: string;
+  week_number: number;
+  week_title?: string;
+  unlocked_at?: string | null;
+  expires_at: string;
+  hours_remaining: number;
+  is_active?: boolean;
+  completion_percentage?: number;
+  total_duration_seconds?: number;
+  duration_minutes?: number;
+  is_completed?: boolean;
+  completed_count?: number;
+  total_materials_count?: number;
+  materials_breakdown?: RemediationMaterialDetail[];
+  completed_materials?: string[];
+}
+
+export interface PreTestStudentData {
+  id: string;
+  full_name: string;
+  email: string;
+  department: string;
+  department_name: string;
+  active_remediations: PreTestActiveRemediation[];
+  all_remediations?: PreTestActiveRemediation[];
+  weekly_results: PreTestStudentWeekResult[];
+}
+
+export interface PreTestAnalyticsResponse {
+  total_students: number;
+  total_attempts: number;
+  average_score: number;
+  remediation_summary: Record<string, number>;
+  total_remediations?: number;
+  active_remediations_count?: number;
+  completed_remediations_count?: number;
+  avg_remediation_progress?: number;
+  students: PreTestStudentData[];
+}
+

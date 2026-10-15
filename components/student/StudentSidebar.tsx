@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
 import { 
-  X, Video, Lock, CheckCircle2, ChevronRight, LogOut 
+  X, Video, Lock, Unlock, CheckCircle2, ChevronRight, LogOut 
 } from 'lucide-react';
 import { WeeklyContent } from '@/components/types';
 
@@ -72,7 +72,9 @@ export default function StudentSidebar({
           const isActive = selectedWeek?.week_number === num && !isIntroView;
           const isFinished = weekData?.is_completed;
           const introLocked = !introWatched;
-          const isWeekLocked = weekData?.is_locked || introLocked;
+          const isTempUnlocked = Boolean(weekData?.is_temporarily_unlocked);
+          // Telafi kilit açması varsa veya normal kilitli değilse kilit açık
+          const isWeekLocked = !isTempUnlocked && (weekData?.is_locked || introLocked);
 
           return (
             <div key={`sidebar-week-wrapper-${num}`} className="relative group">
@@ -85,13 +87,17 @@ export default function StudentSidebar({
                     ? 'bg-primary border-primary text-white shadow-lg' 
                     : isWeekLocked 
                       ? 'bg-gray-900/90 border-gray-800 text-gray-400 cursor-not-allowed' 
-                      : weekData 
-                        ? 'bg-gray-800/50 border-gray-700 text-gray-300 hover:bg-gray-700' 
-                        : 'bg-transparent border-dashed border-gray-700 text-gray-700 opacity-20'
+                      : isTempUnlocked
+                        ? 'bg-amber-950/30 border-amber-500/60 text-amber-200 hover:bg-amber-900/40 shadow-xs ring-1 ring-amber-500/30'
+                        : weekData 
+                          ? 'bg-gray-800/50 border-gray-700 text-gray-300 hover:bg-gray-700' 
+                          : 'bg-transparent border-dashed border-gray-700 text-gray-700 opacity-20'
                 }`}
               >
                 <div className="flex items-center gap-3 text-left">
-                  {isWeekLocked ? (
+                  {isTempUnlocked ? (
+                    <Unlock size={15} className="text-amber-400 shrink-0 animate-pulse" />
+                  ) : isWeekLocked ? (
                     <Lock size={14} className="text-gray-500 opacity-50 shrink-0" />
                   ) : isFinished ? (
                     <CheckCircle2 size={16} className="text-green-400 shrink-0" />
@@ -102,11 +108,18 @@ export default function StudentSidebar({
                     <p className={`text-xs font-semibold ${isWeekLocked ? 'text-gray-500 opacity-60' : 'text-white'}`}>
                       Hafta {num}
                     </p>
-                    {weekData && !isWeekLocked && (
+                    {isTempUnlocked ? (
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <p className="text-[8px] font-black text-amber-400 uppercase tracking-widest">
+                          {weekData?.temporary_unlock_hours_remaining ? `${weekData.temporary_unlock_hours_remaining} SAAT ` : '2 GÜN '}KİLİT AKTİF
+                        </p>
+                        <span className="text-[8px] font-black text-gray-400">· %{weekData?.progress || 0}</span>
+                      </div>
+                    ) : weekData && !isWeekLocked ? (
                       <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mt-0.5">
                         %{weekData.progress || 0} TAMAMLANDI
                       </p>
-                    )}
+                    ) : null}
                     {isWeekLocked && (
                       <p className="text-[8px] text-red-500 font-black uppercase tracking-widest mt-0.5">
                         KİLİTLİ

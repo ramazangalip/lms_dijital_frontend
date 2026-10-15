@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
 import { 
-  Users, X, Check, ListChecks, CheckCircle, AlertCircle, MessageSquare, Bot, Target, TrendingUp, TrendingDown, Minus 
+  Users, X, Check, ListChecks, CheckCircle, AlertCircle, MessageSquare, Bot, Target, TrendingUp, TrendingDown, Minus, Clock 
 } from 'lucide-react';
 import { StudentAnalytics, getDeptName } from '@/components/types';
 

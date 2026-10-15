@@ -1,10 +1,10 @@
 "use client";
 import React from 'react';
 import { 
-  BookOpen, BarChart3, Clock, MessageSquare, LogOut, LayoutGrid 
+  BookOpen, BarChart3, Clock, MessageSquare, LogOut, LayoutGrid, HelpCircle 
 } from 'lucide-react';
 
-export type TeacherActiveTab = 'content' | 'analytics' | 'time_analytics' | 'chatbot_analytics';
+export type TeacherActiveTab = 'content' | 'analytics' | 'time_analytics' | 'chatbot_analytics' | 'pretest_analytics';
 
 interface TeacherHeaderProps {
   activeTab: TeacherActiveTab;
@@ -83,6 +83,17 @@ export default function TeacherHeader({
             }`}
           >
             <MessageSquare size={14} /> CHATBOT ANALİZİ
+          </button>
+          <button
+            type="button"
+            onClick={() => onSelectTab('pretest_analytics')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${
+              activeTab === 'pretest_analytics'
+                ? 'bg-[#ce1212] text-white shadow-lg'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <HelpCircle size={14} /> ÖN DEĞERLENDİRME ANALİZİ
           </button>
         </div>
 
