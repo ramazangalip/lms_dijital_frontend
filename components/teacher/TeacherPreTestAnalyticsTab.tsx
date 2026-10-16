@@ -305,7 +305,7 @@ export default function TeacherPreTestAnalyticsTab({
       </div>
 
       {/* TELAFİ İSTATİSTİK ŞERİDİ */}
-      {data?.remediation_summary && Object.keys(data.remediation_summary).length > 0 && (
+      {/* {data?.remediation_summary && Object.keys(data.remediation_summary).length > 0 && (
         <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 flex flex-wrap items-center gap-4 text-xs font-bold text-amber-900">
           <div className="flex items-center gap-2 text-amber-700 uppercase font-black tracking-wider text-[11px]">
             <AlertTriangle size={16} /> TELAFİ TETİKLENME SAYILARI:
@@ -316,7 +316,7 @@ export default function TeacherPreTestAnalyticsTab({
             </span>
           ))}
         </div>
-      )}
+      )} */}
 
       {/* ÖĞRENCİ LİSTESİ TABLOSU */}
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden text-left">
