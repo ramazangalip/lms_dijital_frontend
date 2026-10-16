@@ -93,7 +93,7 @@ export default function TeacherHeader({
                 : 'text-gray-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            <HelpCircle size={14} /> ÖN DEĞERLENDİRME ANALİZİ
+            <HelpCircle size={14} /> PEKİŞTİRME TESTİ ANALİZİ
           </button>
         </div>
 
