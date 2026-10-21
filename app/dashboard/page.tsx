@@ -504,6 +504,8 @@ export default function StudentDashboard() {
     selectedWeek.week_number >= 2 &&
     selectedWeek.is_pretest_active &&
     !selectedWeek.is_pretest_completed &&
+    !selectedWeek.is_temporarily_unlocked &&
+    (selectedWeek.current_attempt_round || 1) <= 1 &&
     selectedWeek.pre_test &&
     Array.isArray(selectedWeek.pre_test.questions) &&
     selectedWeek.pre_test.questions.length > 0
