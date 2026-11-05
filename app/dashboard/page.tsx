@@ -184,13 +184,21 @@ export default function StudentDashboard() {
     setContents(prevContents => prevContents.map(week => {
       const hasMat = week.materials?.some(m => String(m.id) === matIdStr);
       if (!hasMat) return week;
-      const totalMats = week.materials.length;
-      const doneCount = week.materials.filter(m => String(m.id) === matIdStr || completedMaterials.includes(String(m.id))).length;
+      const studyMats = week.is_temporarily_unlocked 
+        ? week.materials.filter(m => m.content_type !== 'form')
+        : week.materials;
+      const totalMats = studyMats.length;
+      const doneCount = studyMats.filter(m => String(m.id) === matIdStr || completedMaterials.includes(String(m.id))).length;
       const newPercentage = totalMats > 0 ? Math.round((doneCount / totalMats) * 100) : 0;
       return {
         ...week,
         progress: newPercentage,
-        is_completed: newPercentage >= 100
+        is_completed: newPercentage >= 100,
+        remediation_data: week.remediation_data ? {
+          ...week.remediation_data,
+          completion_percentage: newPercentage,
+          is_completed: newPercentage >= 100
+        } : week.remediation_data
       };
     }));
 
@@ -198,13 +206,21 @@ export default function StudentDashboard() {
       if (!prevWeek) return null;
       const hasMat = prevWeek.materials?.some(m => String(m.id) === matIdStr);
       if (!hasMat) return prevWeek;
-      const totalMats = prevWeek.materials.length;
-      const doneCount = prevWeek.materials.filter(m => String(m.id) === matIdStr || completedMaterials.includes(String(m.id))).length;
+      const studyMats = prevWeek.is_temporarily_unlocked 
+        ? prevWeek.materials.filter(m => m.content_type !== 'form')
+        : prevWeek.materials;
+      const totalMats = studyMats.length;
+      const doneCount = studyMats.filter(m => String(m.id) === matIdStr || completedMaterials.includes(String(m.id))).length;
       const newPercentage = totalMats > 0 ? Math.round((doneCount / totalMats) * 100) : 0;
       return {
         ...prevWeek,
         progress: newPercentage,
-        is_completed: newPercentage >= 100
+        is_completed: newPercentage >= 100,
+        remediation_data: prevWeek.remediation_data ? {
+          ...prevWeek.remediation_data,
+          completion_percentage: newPercentage,
+          is_completed: newPercentage >= 100
+        } : prevWeek.remediation_data
       };
     });
 
@@ -229,7 +245,12 @@ export default function StudentDashboard() {
             return {
               ...week,
               progress: exactPercent,
-              is_completed: exactPercent >= 100
+              is_completed: exactPercent >= 100,
+              remediation_data: week.remediation_data ? {
+                ...week.remediation_data,
+                completion_percentage: exactPercent,
+                is_completed: exactPercent >= 100
+              } : week.remediation_data
             };
           }));
           setSelectedWeek(prevWeek => {
@@ -239,7 +260,12 @@ export default function StudentDashboard() {
             return {
               ...prevWeek,
               progress: exactPercent,
-              is_completed: exactPercent >= 100
+              is_completed: exactPercent >= 100,
+              remediation_data: prevWeek.remediation_data ? {
+                ...prevWeek.remediation_data,
+                completion_percentage: exactPercent,
+                is_completed: exactPercent >= 100
+              } : prevWeek.remediation_data
             };
           });
         }
@@ -261,13 +287,13 @@ export default function StudentDashboard() {
           await api.post('/contents/track-activity/', {
             weekly_content_id: selectedWeek.id,
             material_id: activeMaterial?.id || null, 
-            seconds: 30 
+            seconds: 15 
           });
         } catch (err) { 
           console.error("Ping hatası"); 
         }
       };
-      trackingInterval.current = setInterval(sendPing, 30000);
+      trackingInterval.current = setInterval(sendPing, 15000);
     }
     return () => { 
       if (trackingInterval.current) {
@@ -560,15 +586,37 @@ export default function StudentDashboard() {
               <div className="max-w-screen-2xl mx-auto p-4 md:p-10 text-left">
                 {/* 2 GÜNLÜK TELAFİ KİLİT AÇILMA BİLDİRİMİ */}
                 {selectedWeek.is_temporarily_unlocked && (
-                  <div className="mb-6 p-4 bg-amber-50 rounded-2xl border-2 border-amber-300 flex items-center gap-3 text-amber-900 text-xs font-bold shadow-xs">
-                    <Unlock className="text-amber-600 shrink-0" size={20} />
-                    <div>
-                      <span className="font-black uppercase tracking-wider block">
-                        TELAFİ KİLİT AKTİF ({selectedWeek.temporary_unlock_hours_remaining ? `${selectedWeek.temporary_unlock_hours_remaining} Saat Kaldı` : '2 Gün'})
-                      </span>
-                      <span className="text-[11px] text-amber-800 font-medium">
-                        Bu hafta, ön değerlendirme testindeki telafi süreciniz nedeniyle geçici olarak açılmıştır. İçerikleri inceleyebilirsiniz (bu süreçte yapılan çalışmalarda puan/ilerleme kaydedilmez).
-                      </span>
+                  <div className="mb-6 p-5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border-2 border-amber-300 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 text-left">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2.5 bg-amber-500 text-white rounded-xl shadow-xs shrink-0 mt-0.5">
+                        <Unlock size={22} className="stroke-[2.5]" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-black text-amber-950 uppercase tracking-wider text-sm">
+                            TELAFİ KİLİT AKTİF
+                          </span>
+                          <span className="text-[10px] font-black bg-amber-200/80 text-amber-900 px-2.5 py-0.5 rounded-full border border-amber-300">
+                            {selectedWeek.temporary_unlock_hours_remaining ? `${selectedWeek.temporary_unlock_hours_remaining} Saat Kaldı` : '2 Gün'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-amber-900/80 font-medium mt-1">
+                          Bu hafta, ön değerlendirme testindeki eksikler nedeniyle geçici telafi modunda açılmıştır. Tamamladığınız materyaller telafi sürecinize kaydedilir.
+                        </p>
+                      </div>
+                    </div>
+                    {/* TELAFİ İLERLEME YÜZDELİK KARTI */}
+                    <div className="bg-white/95 backdrop-blur px-5 py-3 rounded-xl border border-amber-200 shrink-0 flex items-center gap-4 shadow-xs">
+                      <div>
+                        <span className="text-[9px] font-black text-amber-800 uppercase tracking-widest block">TELAFİ TAMAMLAMA</span>
+                        <span className="text-xl font-black text-amber-600">%{selectedWeek.progress || 0}</span>
+                      </div>
+                      <div className="w-16 bg-gray-100 h-2.5 rounded-full overflow-hidden border border-amber-200">
+                        <div 
+                          className="h-full bg-amber-500 rounded-full transition-all duration-500" 
+                          style={{ width: `${selectedWeek.progress || 0}%` }}
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
@@ -579,11 +627,15 @@ export default function StudentDashboard() {
                       <span className="bg-secondary text-white text-[8px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest">
                         HAFTA {selectedWeek.week_number}
                       </span>
-                      {selectedWeek.current_attempt_round > 1 && (
+                      {selectedWeek.is_temporarily_unlocked ? (
+                        <span className="bg-amber-500 text-white text-[8px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-xs flex items-center gap-1">
+                          <Unlock size={9} /> TELAFİ KİLİT AKTİF
+                        </span>
+                      ) : selectedWeek.current_attempt_round > 1 ? (
                         <span className="bg-amber-100 text-amber-700 text-[8px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest border border-amber-200 animate-pulse">
                           <RefreshCcw size={8} className="inline mr-1" /> 2. TUR (GELİŞİM)
                         </span>
-                      )}
+                      ) : null}
                     </div>
                     <h1 className="text-xl md:text-3xl font-black text-secondary uppercase tracking-tighter leading-tight text-left">
                       {selectedWeek.title}
@@ -591,12 +643,18 @@ export default function StudentDashboard() {
                     <div className="flex items-center gap-3 text-left">
                       <div className="flex-1 max-w-xs bg-gray-100 h-1.5 rounded-full overflow-hidden border shadow-inner">
                         <div 
-                          className={`h-full transition-all duration-1000 ${selectedWeek.progress === 100 ? 'bg-green-500' : 'bg-primary'}`} 
+                          className={`h-full transition-all duration-1000 ${
+                            selectedWeek.is_temporarily_unlocked 
+                              ? (selectedWeek.progress === 100 ? 'bg-green-500' : 'bg-amber-500') 
+                              : (selectedWeek.progress === 100 ? 'bg-green-500' : 'bg-primary')
+                          }`} 
                           style={{ width: `${selectedWeek.progress || 0}%` }} 
                         />
                       </div>
                       <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                        %{selectedWeek.progress || 0} TAMAMLANDI
+                        {selectedWeek.is_temporarily_unlocked 
+                          ? `TELAFİ: %${selectedWeek.progress || 0} TAMAMLANDI` 
+                          : `%${selectedWeek.progress || 0} TAMAMLANDI`}
                       </span>
                     </div>
                   </div>

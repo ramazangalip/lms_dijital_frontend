@@ -113,7 +113,7 @@ export default function StudentSidebar({
                         <p className="text-[8px] font-black text-amber-400 uppercase tracking-widest">
                           {weekData?.temporary_unlock_hours_remaining ? `${weekData.temporary_unlock_hours_remaining} SAAT ` : '2 GÜN '}KİLİT AKTİF
                         </p>
-                        <span className="text-[8px] font-black text-gray-400">· %{weekData?.progress || 0}</span>
+                        <span className="text-[8px] font-black text-amber-300">· TELAFİ: %{weekData?.progress || 0}</span>
                       </div>
                     ) : weekData && !isWeekLocked ? (
                       <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mt-0.5">

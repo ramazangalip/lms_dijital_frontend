@@ -32,6 +32,7 @@ interface TeacherContentTabProps {
   onRemoveMaterialRow: (mIndex: number) => void;
   onAddQuestion: (mIndex: number) => void;
   onUpdateQuestionText: (mIndex: number, qIndex: number, text: string) => void;
+  onUpdateQuestionTopic?: (mIndex: number, qIndex: number, topic: string) => void;
   onSetCorrectOption: (mIndex: number, qIndex: number, oIndex: number) => void;
   onUpdateOption: (mIndex: number, qIndex: number, oIndex: number, text: string) => void;
   flashcards: Flashcard[];
@@ -78,6 +79,7 @@ export default function TeacherContentTab({
   onRemoveMaterialRow,
   onAddQuestion,
   onUpdateQuestionText,
+  onUpdateQuestionTopic,
   onSetCorrectOption,
   onUpdateOption,
   flashcards,
@@ -549,17 +551,29 @@ export default function TeacherContentTab({
                     <div className="space-y-8 text-left">
                       {mat.quiz.questions.map((q, qIndex) => (
                         <div key={qIndex} className="p-4 bg-gray-50/50 rounded-xl space-y-4 border border-gray-100 text-left">
-                          <div className="flex gap-4 items-start text-left">
-                            <span className="bg-[#ce1212] text-white w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 shadow-md">
-                              {qIndex + 1}
-                            </span>
-                            <input 
-                              type="text" 
-                              placeholder="Soru metni..." 
-                              className="w-full p-2.5 rounded-lg border text-xs font-bold focus:border-red-500 outline-none shadow-sm" 
-                              value={q.question_text} 
-                              onChange={(e) => onUpdateQuestionText(mIndex, qIndex, e.target.value)} 
-                            />
+                          <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center text-left">
+                            <div className="flex gap-3 items-center flex-1">
+                              <span className="bg-[#ce1212] text-white w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 shadow-md">
+                                {qIndex + 1}
+                              </span>
+                              <input 
+                                type="text" 
+                                placeholder="Soru metni..." 
+                                className="w-full p-2.5 rounded-lg border text-xs font-bold focus:border-red-500 outline-none shadow-sm bg-white" 
+                                value={q.question_text} 
+                                onChange={(e) => onUpdateQuestionText(mIndex, qIndex, e.target.value)} 
+                              />
+                            </div>
+                            <div className="sm:w-64 pl-10 sm:pl-0">
+                              <input 
+                                type="text" 
+                                placeholder="Konu Başlığı (İsteğe bağlı)..." 
+                                className="w-full p-2.5 rounded-lg border border-indigo-200 bg-indigo-50/50 text-xs font-bold text-indigo-950 placeholder-indigo-400 focus:border-indigo-500 focus:bg-white outline-none shadow-sm transition-colors" 
+                                value={q.topic || ''} 
+                                onChange={(e) => onUpdateQuestionTopic && onUpdateQuestionTopic(mIndex, qIndex, e.target.value)} 
+                                title="Sorunun ilgili olduğu konu başlığı (D2 analiz raporlarında kullanılır)"
+                              />
+                            </div>
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:pl-11 text-left">
                             {q.options.map((opt, oIndex) => {

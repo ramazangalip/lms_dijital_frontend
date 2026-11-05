@@ -329,6 +329,7 @@ const formatToISO = (val?: string | null): string | null => {
           questions: [
             {
               question_text: '',
+              topic: '',
               options: [
                 { option_text: '', is_correct: true },
                 { option_text: '', is_correct: false },
@@ -352,6 +353,7 @@ const formatToISO = (val?: string | null): string | null => {
     if (quiz) {
       quiz.questions.push({
         question_text: '',
+        topic: '',
         options: [
           { option_text: '', is_correct: true },
           { option_text: '', is_correct: false },
@@ -368,6 +370,14 @@ const formatToISO = (val?: string | null): string | null => {
     const updated = [...materials];
     if (updated[mIndex].quiz) {
       updated[mIndex].quiz!.questions[qIndex].question_text = text;
+      setMaterials(updated);
+    }
+  };
+
+  const updateQuestionTopic = (mIndex: number, qIndex: number, topic: string) => {
+    const updated = [...materials];
+    if (updated[mIndex].quiz && updated[mIndex].quiz!.questions[qIndex]) {
+      updated[mIndex].quiz!.questions[qIndex].topic = topic;
       setMaterials(updated);
     }
   };
@@ -612,7 +622,22 @@ const formatToISO = (val?: string | null): string | null => {
           matPayload.id = m.id;
         }
         if (m.content_type === 'form' && m.quiz) {
-          matPayload.quiz = m.quiz;
+          matPayload.quiz = {
+            id: m.quiz.id,
+            title: m.quiz.title,
+            description: m.quiz.description,
+            questions: (m.quiz.questions || []).map((q, qIdx) => ({
+              id: q.id,
+              question_text: q.question_text.trim(),
+              topic: q.topic?.trim() || null,
+              order: q.order ?? qIdx,
+              options: (q.options || []).map(opt => ({
+                id: opt.id,
+                option_text: opt.option_text.trim(),
+                is_correct: Boolean(opt.is_correct)
+              }))
+            }))
+          };
         }
         return matPayload;
       }),
@@ -877,6 +902,7 @@ const formatToISO = (val?: string | null): string | null => {
             onRemoveMaterialRow={removeMaterialRow}
             onAddQuestion={addQuestion}
             onUpdateQuestionText={updateQuestionText}
+            onUpdateQuestionTopic={updateQuestionTopic}
             onSetCorrectOption={setCorrectOption}
             onUpdateOption={updateOption}
             flashcards={flashcards}
