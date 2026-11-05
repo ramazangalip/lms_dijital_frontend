@@ -98,11 +98,11 @@ export default function TeacherPreTestAnalyticsTab({
 
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(13);
-      doc.text(fixTR(`${deptName.toUpperCase()} - D2 HAFTALIK ÖN DEĞERLENDİRME & TELAFİ RAPORU`), 15, 11);
+      doc.text(fixTR(`${deptName.toUpperCase()} - D2 HAFTALIK PEKİŞTİRME TESTİ & TELAFİ RAPORU`), 15, 11);
 
       doc.setFontSize(9);
       doc.setFont("Helvetica", "normal");
-      doc.text(fixTR(`Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')} | Toplam D2: ${data.total_students} | Ort. Ön Test: %${data.average_score} | Ort. Telafi İlerlemesi: %${data.avg_remediation_progress ?? 0} (${data.active_remediations_count || 0} Aktif)`), 15, 18);
+      doc.text(fixTR(`Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')} | Toplam D2: ${data.total_students} | Ort. Pekiştirme Testi: %${data.average_score} | Ort. Telafi İlerlemesi: %${data.avg_remediation_progress ?? 0} (${data.active_remediations_count || 0} Aktif)`), 15, 18);
 
       // Tablo Satırları
       const tableRows: any[] = [];
@@ -149,7 +149,7 @@ export default function TeacherPreTestAnalyticsTab({
       });
 
       autoTable(doc, {
-        head: [['#', 'Öğrenci Adı Soyadı', 'E-Posta', 'Bölüm', 'Telafi Kilitleri & Materyal İncelemeleri', 'Haftalık Ön Test Sonuçları & Tetiklenen Haftalar']],
+        head: [['#', 'Öğrenci Adı Soyadı', 'E-Posta', 'Bölüm', 'Telafi Kilitleri & Materyal İncelemeleri', 'Haftalık Pekiştirme Testi Sonuçları & Tetiklenen Haftalar']],
         body: tableRows,
         startY: 28,
         theme: 'grid',
@@ -323,7 +323,7 @@ export default function TeacherPreTestAnalyticsTab({
         <div className="p-5 md:p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
           <div>
             <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">
-              D2 KATEGORİSİ ÖĞRENCİ ÖN DEĞERLENDİRME DETAYLARI
+              D2 KATEGORİSİ ÖĞRENCİ PEKİŞTİRME TESTİ DETAYLARI
             </h3>
             <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">
               * Yalnızca D2 grubu öğrenciler listelenir. Öğrencinin üzerine tıklayarak yanlış soruları ve telafi detaylarını inceleyebilirsiniz.
@@ -336,7 +336,7 @@ export default function TeacherPreTestAnalyticsTab({
 
         {loading ? (
           <div className="p-16 text-center text-gray-400 font-bold animate-pulse text-xs uppercase tracking-widest">
-            Ön değerlendirme verileri yükleniyor...
+            Pekiştirme testi verileri yükleniyor...
           </div>
         ) : paginatedStudents.length === 0 ? (
           <div className="p-16 text-center text-gray-400 font-bold text-xs uppercase tracking-widest">
@@ -420,7 +420,7 @@ export default function TeacherPreTestAnalyticsTab({
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                             <span className="text-[11px] font-black uppercase text-amber-900 flex items-center gap-1.5">
                               <Zap size={14} className="text-amber-700" />
-                              Ön Test Sonucu Tetiklenen Telafi Kilitleri ve Gerçekleşen İlerlemeler (İzole Telafi Süreci)
+                              Pekiştirme Testi Sonucu Tetiklenen Telafi Kilitleri ve Gerçekleşen İlerlemeler (İzole Telafi Süreci)
                             </span>
                             <span className="text-[9px] font-bold text-amber-700/80 italic">
                               * Normal dönem T1/T2 sürelerini etkilemeyen bağımsız telafi verileridir
@@ -563,7 +563,7 @@ export default function TeacherPreTestAnalyticsTab({
                             >
                               <div className="flex justify-between items-center border-b border-gray-100 pb-2 mb-2">
                                 <span className="font-black text-xs text-slate-800 uppercase">
-                                  {w.week_number}. Hafta Ön Testi
+                                  {w.week_number}. Hafta Pekiştirme Testi
                                 </span>
                                 {!w.is_pretest_active ? (
                                   <span className="text-[9px] font-black px-2 py-0.5 rounded bg-gray-200 text-gray-600">
