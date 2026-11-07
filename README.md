@@ -1,12 +1,8 @@
-<p align="center">
-  <img src="public/okul-logo.png" alt="Bingöl Üniversitesi" width="88" />
-</p>
-
 <h1 align="center">BÜ Dijital LMS</h1>
 
 <p align="center">
   <strong>Yapay Zeka Destekli Dijital Sınıf</strong><br />
-  Bingöl Üniversitesi Bilişim Teknolojileri bölümü için geliştirilmiş öğrenme yönetim sistemi
+  Bingöl Üniversitesi için geliştirilmiş öğrenme yönetim sistemi
 </p>
 
 <p align="center">
@@ -60,7 +56,6 @@ Proje aynı zamanda **PWA (Progressive Web App)** olarak kurulabilir; mobil ciha
 - [Ekran Görüntüleri](#ekran-görüntüleri)
 - [Özellikler](#özellikler)
 - [Teknoloji Yığını](#teknoloji-yığını)
-- [Kurulum](#kurulum)
 - [Sayfalar ve Rotalar](#sayfalar-ve-rotalar)
 - [Proje Yapısı](#proje-yapısı)
 - [API Entegrasyonu](#api-entegrasyonu)
@@ -125,34 +120,6 @@ Proje aynı zamanda **PWA (Progressive Web App)** olarak kurulabilir; mobil ciha
 | İkonlar | [Lucide React](https://lucide.dev/) |
 | PDF Üretimi | [jsPDF](https://github.com/parallax/jsPDF) + `jspdf-autotable` |
 | Kod Kalitesi | ESLint (`eslint-config-next`) |
-
----
-
-## Kurulum
-
-### Gereksinimler
-
-- **Node.js 20+** (önerilir: güncel LTS)
-- **npm** (veya `pnpm` / `yarn` / `bun`)
-- Çalışan bir **LMS backend API**'si (varsayılan olarak `http://127.0.0.1:8000/api`)
-
-### Adımlar
-
-```bash
-# 1. Depoyu klonlayın
-git clone <repo-url>
-cd lms_dijital_frontend
-
-# 2. Bağımlılıkları yükleyin
-npm install
-
-# 3. Geliştirme sunucusunu başlatın
-npm run dev
-```
-
-Uygulama [http://localhost:3000](http://localhost:3000) adresinde açılır. Kök adres (`/`) otomatik olarak `/login` sayfasına yönlendirilir.
-
-> **Not:** Backend adresi varsayılan olarak `localhost` için `http://127.0.0.1:8000/api`, canlı ortam için `https://api.yapayzekadesteklidijitalsinif.com.tr/api` olarak belirlenir. Gerekirse `NEXT_PUBLIC_API_URL` ortam değişkeni ile özelleştirilebilir.
 
 ---
 
