@@ -217,5 +217,5 @@ Kullanılan başlıca uç noktalar:
 ---
 
 <p align="center">
-  <sub>Bingöl Üniversitesi · Bilişim Teknolojileri · BÜ Dijital LMS</sub>
+  <sub>Bingöl Üniversitesi  · BÜ Dijital LMS</sub>
 </p>
