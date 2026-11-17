@@ -48,8 +48,16 @@ export default function TeacherPreTestAnalyticsTab({
   useEffect(() => {
     setLoading(true);
     let url = '/contents/pre-test-analytics/';
+    const params = new URLSearchParams();
     if (selectedDepartment && selectedDepartment !== 'all') {
-      url += `?department=${selectedDepartment}`;
+      params.append('department', selectedDepartment);
+    }
+    if (selectedWeekFilter && selectedWeekFilter !== 'all') {
+      params.append('week_number', selectedWeekFilter);
+    }
+    const queryString = params.toString();
+    if (queryString) {
+      url += `?${queryString}`;
     }
 
     api.get(url)
@@ -61,7 +69,7 @@ export default function TeacherPreTestAnalyticsTab({
         console.error("Ön değerlendirme analitiği yüklenirken hata:", err);
         setLoading(false);
       });
-  }, [selectedDepartment]);
+  }, [selectedDepartment, selectedWeekFilter]);
 
   // Bölüm veya hafta değiştiğinde sayfayı sıfırla
   useEffect(() => {
@@ -374,6 +382,33 @@ export default function TeacherPreTestAnalyticsTab({
 
                     {/* AKTİF TELAFİ VE HAFTALIK ÖZET ROZETLERİ */}
                     <div className="flex flex-wrap items-center gap-2">
+                      {selectedWeekFilter !== 'all' && st.weekly_results && st.weekly_results.length > 0 && (() => {
+                        const curWeek = st.weekly_results.find(w => String(w.week_number) === selectedWeekFilter) || st.weekly_results[0];
+                        if (!curWeek) return null;
+                        if (!curWeek.is_pretest_active) {
+                          return (
+                            <span className="bg-gray-100 text-gray-500 text-[10px] font-bold px-2.5 py-1 rounded-lg">
+                              Test Pasif
+                            </span>
+                          );
+                        }
+                        if (curWeek.has_attempt) {
+                          return (
+                            <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-xs ${
+                              (curWeek.score ?? 0) >= 70 ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-amber-50 text-amber-900 border border-amber-200'
+                            }`}>
+                              <Award size={12} className={(curWeek.score ?? 0) >= 70 ? 'text-emerald-600' : 'text-amber-600'} />
+                              <span>{selectedWeekFilter}.H Testi: %{curWeek.score} ({curWeek.correct}D / {curWeek.wrong}Y)</span>
+                            </span>
+                          );
+                        }
+                        return (
+                          <span className="bg-rose-50 text-rose-700 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-rose-200">
+                            {selectedWeekFilter}.H Testine Girmedi
+                          </span>
+                        );
+                      })()}
+
                       {hasActiveRemediation ? (
                         st.active_remediations.map((ar, i) => (
                           <span
