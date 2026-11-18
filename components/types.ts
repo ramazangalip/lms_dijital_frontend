@@ -402,4 +402,56 @@ export interface D2MaterialPointsResponse {
   departments: D2DepartmentPointsData[];
 }
 
+export interface BadgeItem {
+  id: number;
+  name: string;
+  description: string;
+  icon_name: string;
+  color: string;
+  badge_type: string;
+  requirement_text: string;
+  order: number;
+  is_earned: boolean;
+  earned_at: string | null;
+}
+
+export interface WeeklyProgressItem {
+  week_id: number;
+  week_number: number;
+  title: string;
+  progress_percentage: number;
+  is_completed: boolean;
+}
+
+export interface WeeklyMasteryItem {
+  week_id: number;
+  week_number: number;
+  title: string;
+  mastery_percentage: number;
+  status: string;
+  status_type: 'mastered' | 'in_progress' | 'not_started';
+}
+
+export interface StudentDevelopmentResponse {
+  student_info: {
+    id: number | string;
+    full_name: string;
+    email: string;
+    department: string;
+    department_display: string;
+    category: string | null;
+  };
+  summary_metrics: {
+    overall_progress: number;
+    latest_score: number;
+    badges_earned_count: number;
+    total_badges_count: number;
+  };
+  weekly_progress_list: WeeklyProgressItem[];
+  weekly_mastery_list: WeeklyMasteryItem[];
+  feedback_message: string;
+  badges: BadgeItem[];
+}
+
+
 

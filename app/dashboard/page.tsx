@@ -21,6 +21,7 @@ import StudentFlashcards from '@/components/student/StudentFlashcards';
 import StudentAIChat from '@/components/student/StudentAIChat';
 import StudentAnalysisModal from '@/components/student/StudentAnalysisModal';
 import StudentTotalPointsCard from '@/components/student/StudentTotalPointsCard';
+import StudentDevelopmentButton from '@/components/student/StudentDevelopmentButton';
 import InactivityTimeoutModal from '@/components/common/InactivityTimeoutModal';
 
 export default function StudentDashboard() {
@@ -663,12 +664,15 @@ export default function StudentDashboard() {
                     </div>
                   </div>
 
-                  {/* ÖĞRENCİ TOPLAM PUAN KARTI (Vize Öncesi & Sonrası Açılır Popover) */}
-                  <StudentTotalPointsCard 
-                    points={userTotalPoints} 
-                    pointsBefore={pointsBefore} 
-                    pointsAfter={pointsAfter} 
-                  />
+                  {/* ÖĞRENCİ BİREYSEL GELİŞİM VE PUAN BUTONLARI (İkon Puanın Solunda) */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <StudentDevelopmentButton />
+                    <StudentTotalPointsCard 
+                      points={userTotalPoints} 
+                      pointsBefore={pointsBefore} 
+                      pointsAfter={pointsAfter} 
+                    />
+                  </div>
                 </div>
 
                 {/* Ana Grid: Solda Materyal Listesi, Sağda İçerik */}
