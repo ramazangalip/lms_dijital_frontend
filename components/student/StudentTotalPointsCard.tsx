@@ -73,7 +73,7 @@ export default function StudentTotalPointsCard({
 
       {/* AŞAĞI DOĞRU AÇILAN PUAN DETAY POPOVERI */}
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 p-3.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150 text-left">
+        <div className="absolute top-full left-0 md:left-auto md:right-0 mt-2 w-60 sm:w-64 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-gray-100 p-3.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150 text-left">
           <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-gray-100">
             <span className="text-[10px] font-black tracking-wider uppercase text-slate-400">
               PUAN DAĞILIMI
