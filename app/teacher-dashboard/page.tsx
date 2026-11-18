@@ -20,6 +20,7 @@ import TeacherStudentAnalyticsTab from '@/components/teacher/TeacherStudentAnaly
 import TeacherTimeAnalyticsTab from '@/components/teacher/TeacherTimeAnalyticsTab';
 import TeacherChatbotAnalyticsTab from '@/components/teacher/TeacherChatbotAnalyticsTab';
 import TeacherPreTestAnalyticsTab from '@/components/teacher/TeacherPreTestAnalyticsTab';
+import TeacherD2MaterialPointsTab from '@/components/teacher/TeacherD2MaterialPointsTab';
 import TeacherBulkReportPrint from '@/components/teacher/TeacherBulkReportPrint';
 import TeacherKarneModal from '@/components/teacher/TeacherKarneModal';
 import InactivityTimeoutModal from '@/components/common/InactivityTimeoutModal';
@@ -860,12 +861,14 @@ const formatToISO = (val?: string | null): string | null => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 font-sans pb-12 text-left">
-      {/* 1. GİZLİ PDF YAZDIRMA TABLOSU */}
-      <TeacherBulkReportPrint
-        filteredBulkData={filteredBulkData}
-        selectedDepartment={selectedDepartment}
-      />
+    <div className="min-h-screen bg-gray-50 text-gray-800 font-sans pb-12 text-left print:bg-white print:text-black print:pb-0 print:min-h-0">
+      {/* 1. GİZLİ PDF YAZDIRMA TABLOSU (Sadece Öğrenci Analizleri sekmesinde toplu karneler için) */}
+      {activeTab === 'analytics' && (
+        <TeacherBulkReportPrint
+          filteredBulkData={filteredBulkData}
+          selectedDepartment={selectedDepartment}
+        />
+      )}
 
       {/* 2. HEADER MENÜ */}
       <TeacherHeader
@@ -875,7 +878,7 @@ const formatToISO = (val?: string | null): string | null => {
       />
 
       {/* 3. ANA İÇERİK SEKMELERİ */}
-      <main className="max-w-7xl mx-auto p-4 md:p-8 pt-6 md:pt-8 print:hidden text-left">
+      <main className={`max-w-7xl mx-auto p-4 md:p-8 pt-6 md:pt-8 text-left ${activeTab === 'd2_points' ? 'print:block print:p-0 print:m-0 print:max-w-none' : 'print:hidden'}`}>
         {activeTab === 'content' && (
           <TeacherContentTab
             weekNumber={weekNumber}
@@ -969,6 +972,10 @@ const formatToISO = (val?: string | null): string | null => {
             selectedDepartment={selectedDepartment}
             onDepartmentChange={setSelectedDepartment}
           />
+        )}
+
+        {activeTab === 'd2_points' && (
+          <TeacherD2MaterialPointsTab />
         )}
       </main>
 

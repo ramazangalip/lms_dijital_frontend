@@ -33,6 +33,8 @@ export default function StudentDashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [pointsEarned, setPointsEarned] = useState<{ show: boolean; amount: number }>({ show: false, amount: 0 });
   const [userTotalPoints, setUserTotalPoints] = useState(0);
+  const [pointsBefore, setPointsBefore] = useState(0);
+  const [pointsAfter, setPointsAfter] = useState(0);
   const trackingInterval = useRef<NodeJS.Timeout | null>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [predictedScore, setPredictedScore] = useState<number>(80);
@@ -113,6 +115,8 @@ export default function StudentDashboard() {
       ]);
       
       setUserTotalPoints(analyticsRes.data.total_points || 0);
+      setPointsBefore(analyticsRes.data.points_before || 0);
+      setPointsAfter(analyticsRes.data.points_after || 0);
       const stringifiedCompleted = (completedMatsRes.data || []).map((id: any) => String(id));
       setCompletedMaterials(stringifiedCompleted);
       
@@ -659,8 +663,12 @@ export default function StudentDashboard() {
                     </div>
                   </div>
 
-                  {/* ÖĞRENCİ TOPLAM PUAN KARTI */}
-                  <StudentTotalPointsCard points={userTotalPoints} />
+                  {/* ÖĞRENCİ TOPLAM PUAN KARTI (Vize Öncesi & Sonrası Açılır Popover) */}
+                  <StudentTotalPointsCard 
+                    points={userTotalPoints} 
+                    pointsBefore={pointsBefore} 
+                    pointsAfter={pointsAfter} 
+                  />
                 </div>
 
                 {/* Ana Grid: Solda Materyal Listesi, Sağda İçerik */}

@@ -351,3 +351,55 @@ export interface PreTestAnalyticsResponse {
   students: PreTestStudentData[];
 }
 
+export interface D2MaterialItem {
+  material_id: number;
+  title: string;
+  content_type: string;
+  week_number: number | null;
+  completed_at: string;
+  points: number;
+}
+
+export interface D2StudentPointData {
+  id: number;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  email: string;
+  department: string;
+  department_display: string;
+  category: string;
+  points_before: number;
+  points_after: number;
+  total_points: number;
+  user_total_points: number;
+  materials_before_count: number;
+  materials_after_count: number;
+  total_materials_count: number;
+  materials_before: D2MaterialItem[];
+  materials_after: D2MaterialItem[];
+}
+
+export interface D2DepartmentPointsData {
+  department_key: string;
+  department_name: string;
+  student_count: number;
+  total_points_before: number;
+  total_points_after: number;
+  total_points_overall: number;
+  students: D2StudentPointData[];
+}
+
+export interface D2MaterialPointsResponse {
+  cutoff_date: string;
+  cutoff_date_formatted: string;
+  summary: {
+    total_students: number;
+    total_points_before: number;
+    total_points_after: number;
+    total_points_overall: number;
+  };
+  departments: D2DepartmentPointsData[];
+}
+
+
