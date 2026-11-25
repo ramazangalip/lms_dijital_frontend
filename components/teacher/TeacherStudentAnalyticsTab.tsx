@@ -1,7 +1,7 @@
 "use client";
-import React from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
-  Users, Filter, Clock, Search, Loader2, ChevronLeft, ChevronRight, FileText, BarChart2 
+  Users, Filter, Clock, Search, Loader2, ChevronLeft, ChevronRight, FileText, BarChart2, CheckCircle2, Calendar 
 } from 'lucide-react';
 import { StudentAnalytics, formatDuration, getDeptName, DepartmentItem, DEPARTMENT_MAP } from '@/components/types';
 
@@ -34,6 +34,41 @@ export default function TeacherStudentAnalyticsTab({
 }: TeacherStudentAnalyticsTabProps) {
   const totalPages = Math.ceil(filteredAnalytics.length / pageSize) || 1;
   const paginatedStudents = filteredAnalytics.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  // Mevcut haftaları d2 öğrencilerinin haftalık dökümünden dinamik olarak çek
+  const availableWeeks = useMemo(() => {
+    const weeksSet = new Set<number>();
+    filteredAnalytics.forEach(student => {
+      student.weekly_breakdown?.forEach(wb => {
+        if (typeof wb.week_number === 'number') {
+          weeksSet.add(wb.week_number);
+        }
+      });
+    });
+    const sorted = Array.from(weeksSet).sort((a, b) => a - b);
+    return sorted.length > 0 ? sorted : [1, 2, 3, 4, 5, 6];
+  }, [filteredAnalytics]);
+
+  const [selectedWeek, setSelectedWeek] = useState<number>(1);
+
+  // Eğer seçili hafta mevcut haftalar listesinde yoksa ilk haftaya dön
+  useEffect(() => {
+    if (availableWeeks.length > 0 && !availableWeeks.includes(selectedWeek)) {
+      setSelectedWeek(availableWeeks[0]);
+    }
+  }, [availableWeeks, selectedWeek]);
+
+  // Seçilen haftayı %100 tamamlayan d2 öğrenci sayısı
+  const completedCount = useMemo(() => {
+    return filteredAnalytics.filter(student =>
+      student.weekly_breakdown?.some(
+        wb => wb.week_number === selectedWeek && (wb.is_completed || (typeof wb.progress === 'number' && wb.progress >= 100))
+      )
+    ).length;
+  }, [filteredAnalytics, selectedWeek]);
+
+  const totalStudents = filteredAnalytics.length;
+  const completionPercentage = totalStudents > 0 ? Math.round((completedCount / totalStudents) * 100) : 0;
 
   return (
     <div className="animate-in slide-in-from-bottom-3 duration-300 space-y-6 text-left leading-normal">
@@ -93,6 +128,56 @@ export default function TeacherStudentAnalyticsTab({
             <FileText size={15} /> 
             {pdfLoading ? "HAZIRLANIYOR..." : `${getDeptName(selectedDepartment).toUpperCase()} AKADEMİK RAPOR`}
           </button>
+        </div>
+      </div>
+
+      {/* D2 KATEGORİSİ HAFTALIK %100 TAMAMLAMA KPI KARTI */}
+      <div className="bg-white rounded-3xl p-5 md:p-6 shadow-sm border border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-left">
+        {/* SOL: İKON VE TAMAMLAMA VERİLERİ */}
+        <div className="flex items-center gap-4 text-left">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shadow-xs shrink-0">
+            <CheckCircle2 size={24} className="stroke-[2.5]" />
+          </div>
+          <div className="text-left leading-tight">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-tight text-slate-400">
+                {selectedWeek}. HAFTA İÇERİĞİNİ %100 TAMAMLAYAN ÖĞRENCİ SAYISI
+              </span>
+              <span className="bg-red-50 text-red-600 border border-red-100 px-2 py-0.5 rounded-full text-[9px] md:text-[10px] font-black uppercase">
+                D2 KATEGORİSİ
+              </span>
+            </div>
+            <div className="flex items-baseline gap-1.5 flex-wrap">
+              <span className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
+                {completedCount}
+              </span>
+              <span className="text-xs md:text-sm font-bold text-slate-400">
+                / {totalStudents} Öğrenci
+              </span>
+              <span className="bg-emerald-50 text-emerald-700 border border-emerald-200/70 px-2.5 py-0.5 rounded-full text-[11px] md:text-xs font-black ml-2 md:ml-3">
+                %{completionPercentage} Tamamlama Oranı
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* SAĞ: HAFTA SEÇİCİ */}
+        <div className="flex items-center gap-2 bg-gray-50 border border-gray-200/80 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 w-full sm:w-auto justify-between sm:justify-start">
+          <div className="flex items-center gap-2">
+            <Calendar size={14} className="text-gray-400 shrink-0" />
+            <span className="text-[11px] font-black uppercase text-slate-500">HAFTA:</span>
+          </div>
+          <select 
+            value={selectedWeek} 
+            onChange={(e) => setSelectedWeek(Number(e.target.value))}
+            className="bg-transparent text-[11px] font-black uppercase outline-none text-slate-800 cursor-pointer"
+          >
+            {availableWeeks.map((w) => (
+              <option key={w} value={w}>
+                {w}. HAFTA
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

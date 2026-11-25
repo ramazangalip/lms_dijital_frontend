@@ -116,6 +116,7 @@ export interface QuizDetailAnalysis {
 export interface WeeklyProgress {
   week_number: number;
   progress: number;
+  is_completed?: boolean;
   progress_1?: number;
   progress_2?: number;
   current_round?: number;
